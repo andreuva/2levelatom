@@ -5,6 +5,6 @@
 
 #include <stdio.h>
 int main() {
-
-   return 0;
+    printf("Testing");
+    return 0;
 }
