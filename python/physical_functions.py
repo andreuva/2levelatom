@@ -6,24 +6,23 @@ import numpy as np
 import constants as cte
 
 
-def Gaussian(x, alpha):
-    """ Return Gaussian line shape at x with HWHM alpha """
-    return np.sqrt(np.log(2) / np.pi) / alpha \
-        * np.exp(-(x / alpha)**2 * np.log(2))
+def Gaussian(x, sigma, x0=0):
+    """ Return Gaussian line shape at x with a given sigma centred at x0 """
+    return 1/(sigma*np.sqrt(2*np.pi)) \
+        * np.exp(-((x-x0) / sigma)**2 / 2)
 
 
-def Lorentzian(x, gamma):
-    """ Return Lorentzian line shape at x with HWHM gamma """
-    return gamma / np.pi / (x**2 + gamma**2)
+def Lorentzian(x, gamma, x0=0):
+    """ Return Lorentzian line shape at x with gamma centred at x0"""
+    return gamma / np.pi / ((x-x0)**2 + gamma**2)
 
 
-def Voigt(x, alpha, gamma):
+def Voigt(x, sigma, gamma, x0=0):
     """
-    Return the Voigt line shape at x with Lorentzian component HWHM gamma
-    and Gaussian component HWHM alpha.
+    Return the Voigt line shape at x with Lorentzian component gamma
+    and Gaussian component sigma.
     """
-    sigma = alpha / np.sqrt(2 * np.log(2))
-    return np.real(wofz((x + 1j*gamma)/sigma/np.sqrt(2))) \
+    return np.real(wofz(((x-x0) + 1j*gamma)/sigma/np.sqrt(2))) \
         / sigma / np.sqrt(2*np.pi)
 
 
