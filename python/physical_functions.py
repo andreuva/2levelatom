@@ -3,6 +3,7 @@
 #                AUTHOR: ANDRES VICENTE AREVALO                             #
 #############################################################################
 import numpy as np
+from scipy.special import wofz
 import constants as cte
 
 
@@ -17,6 +18,7 @@ def Lorentzian(x, gamma, x0=0):
     return gamma / np.pi / ((x-x0)**2 + gamma**2)
 
 
+# CHANGE!! 
 def Voigt(x, sigma, gamma, x0=0):
     """
     Return the Voigt line shape at x with Lorentzian component gamma

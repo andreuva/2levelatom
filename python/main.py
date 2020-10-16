@@ -4,7 +4,6 @@
 #############################################################################
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.special import wofz
 from tqdm import tqdm
 import constants as cte
 import parameters as pm
@@ -30,7 +29,7 @@ _, XI = np.meshgrid(ww, XI)
 
 SI0 = func.plank_nu(ww, TT)
 I0 = SI0*0
-SQ0 = 0*SI
+SQ0 = 0*SI0
 
 
 def dIdtau(I, tau, SI):
@@ -42,7 +41,8 @@ gamma = np.sqrt(2) * pm.a       # a = gamma / (sqrt(2)*sigma)
 phy = func.Voigt(ww, 1, gamma, pm.wline)
 
 # WHAT JU, JL, rhoju, rhojl, mu ???
+'''
 SIL = (2*cte.h*ww/cte.c**2) * np.sqrt((2*Jl+1)/(2*Ju+1)) * \
     (rho00ju + wjujl*(3*mu**2 - 1)/np.sqrt(8)*rho02ju)
 
-SI = phy/(phy+r) * SIL + r/(phy+r) * func.plank_nu(ww, TT)
+SI = phy/(phy+r) * SIL + r/(phy+r) * func.plank_nu(ww, TT)'''
