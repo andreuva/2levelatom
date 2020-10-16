@@ -38,7 +38,6 @@ def dIdtau(I, tau, SI):
 
 
 gamma = np.sqrt(2) * pm.a       # a = gamma / (sqrt(2)*sigma)
-phy = func.Voigt(ww, 1, gamma, pm.wline)
 
 # WHAT JU, JL, rhoju, rhojl, mu ???
 '''
