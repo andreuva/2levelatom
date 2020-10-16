@@ -3,7 +3,7 @@
 #                AUTHOR: ANDRES VICENTE AREVALO                             #
 #############################################################################
 import numpy as np
-from scipy.special import wofz
+import scipy.special as special
 import constants as cte
 
 
@@ -53,8 +53,14 @@ def voigt(v, a):
     return t
 
 
-def voigt_custom(v, a):
-    return 
+def Voigt(x, sigma, gamma, x0=0):
+    """
+    Return the Voigt line shape at x with Lorentzian component gamma
+    and Gaussian component sigma.
+    """
+    return np.real(special.wofz(((x-x0) + 1j*gamma)/sigma/np.sqrt(2))) \
+        / sigma / np.sqrt(2*np.pi)
+
 
 def plank_nu(nu, T):
     """
