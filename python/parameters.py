@@ -15,8 +15,10 @@ dw = (wu-wl)/100                    # 100 points to sample the spectrum
 
 qnd = 20                            # nodes in the gaussian quadrature (# dirs)
 
+T = 5778                            # T (isotermic) of the medium
+
 a = 1                               # dumping Voigt profile a=gam/(2^1/2*sig)
-r = 0.1                             # line strength XCI/XLI
+r = 0.5                             # line strength XCI/XLI
 eps = 1                             # Phot. dest. probability (LTE=1,NLTE=12-4)
 dep_col = 0.5                       # Depolirarization colisions (delta)
 Hd = 1/5                            # Hanle depolarization factor [1/5, 1]

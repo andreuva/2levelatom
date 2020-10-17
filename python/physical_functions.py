@@ -53,7 +53,7 @@ def voigt(v, a):
     return t
 
 
-def Voigt(x, sigma, gamma, x0=0):
+def custom_voigt(x, sigma, gamma, x0=0):
     """
     Return the Voigt line shape at x with Lorentzian component gamma
     and Gaussian component sigma.
