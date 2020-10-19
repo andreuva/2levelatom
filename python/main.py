@@ -11,6 +11,8 @@ from tqdm import tqdm
 import constants as cte
 import parameters as pm
 import physical_functions as func
+from jsymbols import jsymbols
+jsymbols = jsymbols()
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
 # plane-parallel atmosfere and axial-simetry)
@@ -29,17 +31,20 @@ for i in range(len(ww)):
     phy[i] = np.real(func.voigt(ww[i], pm.a))
 
 # Initialaice the intensities vectors to solve the ETR
-II = np.empty((len(zz), len(ww), len(mus)))
-II[0] = np.repeat(func.plank_nu(ww, pm.T)[ :, np.newaxis], len(mus), axis=1)
+II = np.empty((len(zz), len(ww), len(mus)))*0
+II = np.repeat(np.repeat(func.plank_nu(ww, pm.T)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+
+plank_Ishape = II
+mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(ww), axis=0)[np.newaxis, :, :], len(zz), axis=0)
+phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+
 QQ = II*0
 II_new = II
 QQ_new = QQ
 
 # Compute the source function as a matrix of zz and ww
-SI = pm.r/(phy + pm.r)*func.plank_nu(ww, pm.T)
-SI = np.repeat( SI[ :, np.newaxis], len(mus), axis=1)
+SI = np.repeat(np.repeat(pm.r/(phy + pm.r)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0) * II
 SQ = SI*0                                           # SQ = 0 (size of SI)
-print(SI.shape)
 
 # ------------------- FUNCTIONS FOR THE SOLVE METHOD -------------------------------
 # Function to compute the coeficients of the Short Characteristics method
@@ -62,27 +67,42 @@ def psi_calc(deltaum, deltaup, mode = 'quad'):
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
 # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
-print('Solving the Radiative Transpor Equations')
-for j in tqdm(range(len(mus))):
-    ss = zz/mus[j]
-    ChiI = 1
-    taus = -ss*ChiI
-    deltau = taus[1:] - taus[:-1]
+for i in range(10):
+    print('Solving the Radiative Transpor Equations')
+    for j in tqdm(range(len(mus))):
+        ss = zz/mus[j]
+        ChiI = 1
+        taus = -ss*ChiI
+        deltau = taus[1:] - taus[:-1]
 
-    for i in range(len(zz)-2):
+        for i in range(len(zz)-2):
 
-        psim,psio,psip = psi_calc(deltau[i],deltau[i+1])
+            psim,psio,psip = psi_calc(deltau[i],deltau[i+1])
 
-        # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-        II_new[i+1,:,j] = II[i,:,j] + SI[:,j]*psim + SI[:,j]*psio + SI[:,j]*psip
-        QQ_new[i+1,:,j] = QQ[i,:,j] + SQ[:,j]*psim + SQ[:,j]*psio + SQ[:,j]*psip
+            # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
+            II_new[i+1,:,j] = II[i,:,j] + SI[i,:,j]*psim + SI[i,:,j]*psio + SI[i,:,j]*psip
+            QQ_new[i+1,:,j] = QQ[i,:,j] + SQ[i,:,j]*psim + SQ[i,:,j]*psio + SQ[i,:,j]*psip
 
-# ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
-print('computing the components of the radiative tensor')
+    # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
+    print('computing the components of the radiative tensor')
 
-Jm00 = 1/2 * integ.simps( phy * integ.simps(II_new) )
-Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy * integ.simps( (3*mus**2 - 1)*II_new + 3*(mus**2 - 1)*QQ_new ))
+    Jm00 = 1/2 * integ.simps( phy * integ.simps(II_new) )
+    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy * integ.simps( (3*mus**2 - 1)*II_new + 3*(mus**2 - 1)*QQ_new ))
 
-print(Jm00.shape,Jm02.shape)
+    print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
+    # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE TRE -----------------------
+    print('Computing the source function to close the loop and solve the ETR again')
 
-print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00,Jm02))
+    w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j3(1, 1, 2, pm.ju, pm.ju, pm.jl)
+
+    S00 = (1-pm.eps)*np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2) + pm.eps*plank_Ishape
+    S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col) * w2jujl**2 * np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
+
+    SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
+    SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
+
+    SI = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
+    SQ = phy_shape/(phy_shape + pm.r)*SLQ
+
+    II = II_new
+    QQ = QQ_new
