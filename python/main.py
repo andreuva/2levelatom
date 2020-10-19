@@ -111,4 +111,3 @@ for i in range(10):
 # -------------------- ONCE WE OBTAIN THE SOLUTION, COMPUTE THE POPULATIONS ----------------
 rho00 = np.sqrt((2*pm.ju + 1)/(2*pm.jl+1)) * (2*cte.h*ww**3/cte.c**2)**-1 * \
     ((1-pm.eps)*Jm00 + pm.eps*plank_Ishape)/((1-pm.eps)*pm.dep_col)
-rho02 = 
