@@ -80,8 +80,8 @@ for i in range(10):
             psim,psio,psip = psi_calc(deltau[i],deltau[i+1])
 
             # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-            II_new[i+1,:,j] = II[i,:,j] + SI[i,:,j]*psim + SI[i,:,j]*psio + SI[i,:,j]*psip
-            QQ_new[i+1,:,j] = QQ[i,:,j] + SQ[i,:,j]*psim + SQ[i,:,j]*psio + SQ[i,:,j]*psip
+            II_new[i+1,:,j] = II[i+1,:,j] + SI[i,:,j]*psim + SI[i+1,:,j]*psio + SI[i+2,:,j]*psip
+            QQ_new[i+1,:,j] = QQ[i+1,:,j] + SQ[i,:,j]*psim + SQ[i+1,:,j]*psio + SQ[i+2,:,j]*psip
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     print('computing the components of the radiative tensor')
@@ -90,7 +90,7 @@ for i in range(10):
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy * integ.simps( (3*mus**2 - 1)*II_new + 3*(mus**2 - 1)*QQ_new ))
 
     print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
-    # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE TRE -----------------------
+    # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
     print('Computing the source function to close the loop and solve the ETR again')
 
     w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j3(1, 1, 2, pm.ju, pm.ju, pm.jl)
@@ -106,3 +106,9 @@ for i in range(10):
 
     II = II_new
     QQ = QQ_new
+
+
+# -------------------- ONCE WE OBTAIN THE SOLUTION, COMPUTE THE POPULATIONS ----------------
+rho00 = np.sqrt((2*pm.ju + 1)/(2*pm.jl+1)) * (2*cte.h*ww**3/cte.c**2)**-1 * \
+    ((1-pm.eps)*Jm00 + pm.eps*plank_Ishape)/((1-pm.eps)*pm.dep_col)
+rho02 = 

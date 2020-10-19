@@ -24,3 +24,5 @@ dep_col = 0.5                       # Depolirarization colisions (delta)
 Hd = 1/5                            # Hanle depolarization factor [1/5, 1]
 ju = 1
 jl = 0
+
+tol = 1e-15                         # Tolerance for finding the solution
