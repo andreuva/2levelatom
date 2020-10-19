@@ -31,24 +31,26 @@ for i in range(len(ww)):
     phy[i] = np.real(func.voigt(ww[i], pm.a))
 
 # Initialaice the intensities vectors to solve the ETR
+# Computed as a tensor in zz, ww, mus
 II = np.empty((len(zz), len(ww), len(mus)))*0
 II = np.repeat(np.repeat(func.plank_nu(ww, pm.T)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 
 plank_Ishape = II
 mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(ww), axis=0)[np.newaxis, :, :], len(zz), axis=0)
 phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+ww_shape = np.repeat(np.repeat(ww[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 
 QQ = II*0
 II_new = II
 QQ_new = QQ
 
-# Compute the source function as a matrix of zz and ww
+# Compute the source function as a tensor in of zz, ww, mus
 SI = np.repeat(np.repeat(pm.r/(phy + pm.r)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0) * II
 SQ = SI*0                                           # SQ = 0 (size of SI)
 
 # ------------------- FUNCTIONS FOR THE SOLVE METHOD -------------------------------
 # Function to compute the coeficients of the Short Characteristics method
-def psi_calc(deltaum, deltaup, mode = 'quad'):
+def psi_calc(deltaum, deltaup, mode='quad'):
 
     U0 = 1 - np.exp(-deltaum)
     U1 = deltaum*np.exp(-deltaum) - U0
@@ -66,10 +68,41 @@ def psi_calc(deltaum, deltaup, mode = 'quad'):
     else:
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
-# ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
-for i in range(10):
-    print('Solving the Radiative Transpor Equations')
-    for j in tqdm(range(len(mus))):
+
+# ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ----------------------------
+II = II*0
+II[0] = plank_Ishape[0]
+SI = II*0
+SQ = II*0                                           # SQ = 0 (size of SI)
+
+for j in range(len(mus)):
+    ss = zz/mus[j]
+    ChiI = 1
+    taus = -ss*ChiI
+    deltau = taus[1:] - taus[:-1]
+    for i in range(len(zz)-2):
+
+        psim,psio,psip = psi_calc(deltau[i], deltau[i+1])
+
+        # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
+        II_new[i+1,:,j] = II[i+1,:,j] + SI[i,:,j]*psim + SI[i+1,:,j]*psio + SI[i+2,:,j]*psip
+        QQ_new[i+1,:,j] = QQ[i+1,:,j] + SQ[i,:,j]*psim + SQ[i+1,:,j]*psio + SQ[i+2,:,j]*psip
+
+    psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
+
+    # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
+    II_new[-1,:,j] = II[-1,:,j] + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+    QQ_new[-1,:,j] = QQ[-1,:,j] + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+
+plt.plot(zz, II_new[:,0,10])
+plt.show()
+# -----------------------------------------------------------------------------------
+# ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
+# -----------------------------------------------------------------------------------
+for i in tqdm(range(10)):
+    # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
+    # print('Solving the Radiative Transpor Equations')
+    for j in range(len(mus)):
         ss = zz/mus[j]
         ChiI = 1
         taus = -ss*ChiI
@@ -77,21 +110,27 @@ for i in range(10):
 
         for i in range(len(zz)-2):
 
-            psim,psio,psip = psi_calc(deltau[i],deltau[i+1])
+            psim,psio,psip = psi_calc(deltau[i], deltau[i+1])
 
             # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
             II_new[i+1,:,j] = II[i+1,:,j] + SI[i,:,j]*psim + SI[i+1,:,j]*psio + SI[i+2,:,j]*psip
             QQ_new[i+1,:,j] = QQ[i+1,:,j] + SQ[i,:,j]*psim + SQ[i+1,:,j]*psio + SQ[i+2,:,j]*psip
+        
+        psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
+
+        # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
+        II_new[-1,:,j] = II[-1,:,j] + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+        QQ_new[-1,:,j] = QQ[-1,:,j] + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
-    print('computing the components of the radiative tensor')
+    # print('computing the components of the radiative tensor')
 
     Jm00 = 1/2 * integ.simps( phy * integ.simps(II_new) )
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy * integ.simps( (3*mus**2 - 1)*II_new + 3*(mus**2 - 1)*QQ_new ))
 
-    print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
+    # print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
-    print('Computing the source function to close the loop and solve the ETR again')
+    # print('Computing the source function to close the loop and solve the ETR again')
 
     w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j3(1, 1, 2, pm.ju, pm.ju, pm.jl)
 
@@ -109,5 +148,11 @@ for i in range(10):
 
 
 # -------------------- ONCE WE OBTAIN THE SOLUTION, COMPUTE THE POPULATIONS ----------------
-rho00 = np.sqrt((2*pm.ju + 1)/(2*pm.jl+1)) * (2*cte.h*ww**3/cte.c**2)**-1 * \
-    ((1-pm.eps)*Jm00 + pm.eps*plank_Ishape)/((1-pm.eps)*pm.dep_col)
+Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
+Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
+
+rho00 = np.sqrt((2*pm.ju + 1)/(2*pm.jl+1)) * (2*cte.h*ww_shape**3/cte.c**2)**-1 * \
+    ((1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape)/((1-pm.eps)*pm.dep_col + 1)
+
+rho02 = np.sqrt((2*pm.ju + 1)/(2*pm.jl+1)) * (2*cte.h*ww_shape**3/cte.c**2)**-1 * \
+    ((1-pm.eps)*Jm02_shape)/((1-pm.eps)*(1j*pm.Hd*2 + pm.dep_col) + 1)

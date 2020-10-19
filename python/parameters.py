@@ -5,15 +5,15 @@
 import numpy as np
 import constants as cte
 
-zl = -np.log(1e3)                   # lower boundary optically thick
-zu = -np.log(1e-3)                  # upper boundary optically thin
-dz = 1e-1                           # stepsize
+zl = -np.log(1e2)                   # lower boundary optically thick
+zu = -np.log(1e-2)                   # upper boundary optically thin
+dz = (zu-zl)/200                     # stepsize
 
 wl = cte.c/(600*1e-9)               # lower/upper frequency limit
 wu = cte.c/(500*1e-9)
-dw = (wu-wl)/100                    # 100 points to sample the spectrum
+dw = (wu-wl)/150                    # 100 points to sample the spectrum
 
-qnd = 20                            # nodes in the gaussian quadrature (# dirs)
+qnd = 100                            # nodes in the gaussian quadrature (# dirs)
 
 T = 5778                            # T (isotermic) of the medium
 
