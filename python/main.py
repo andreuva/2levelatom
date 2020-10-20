@@ -27,10 +27,10 @@ mus = np.linspace(0.01, 1, pm.qnd)
 # ------------------------ INITIAL CONDITIONS -----------------------------
 # Compute the initial Voigts vectors
 phy = np.empty_like(ww)
-wnorm = (ww - pm.w0)/pm.wa
+wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
 for i in range(len(ww)):
     phy[i] = np.real(func.voigt(wnorm[i], 1e-9))
-phy = phy/ integ.simps(phy)
+phy = phy/integ.simps(phy)          # normalice phy to sum 1
 
 # Initialaice the intensities vectors to solve the ETR
 # Computed as a tensor in zz, ww, mus
@@ -93,13 +93,13 @@ SQ = 0*II
 for j in range(len(mus)):
     taus = np.exp(-zz)/mus[j]
     deltau = abs(taus[1:] - taus[:-1])
-    for i in range(len(zz)-2):
+    for i in range(1,len(zz)-1):
 
-        psim,psio,psip = psi_calc(deltau[i], deltau[i+1])
+        psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
 
         # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-        II_new[i+1,:,j] = II_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i,:,j]*psim + SI[i+1,:,j]*psio + SI[i+2,:,j]*psip
-        QQ_new[i+1,:,j] = QQ_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i,:,j]*psim + SQ[i+1,:,j]*psio + SQ[i+2,:,j]*psip
+        II_new[i,:,j] = II_new[i,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+        QQ_new[i,:,j] = QQ_new[i,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
     psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
 
@@ -107,13 +107,9 @@ for j in range(len(mus)):
     II_new[-1,:,j] = II_new[-1,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
     QQ_new[-1,:,j] = QQ_new[-1,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
 
-plt.plot(ww, II[0,:,int(pm.qnd/2)])
-plt.plot(ww, II_new[99,:,int(pm.qnd/2)])
-plt.plot(ww, II_new[75,:,int(pm.qnd/2)])
-plt.plot(ww, II_new[90,:,int(pm.qnd/2)])
-plt.plot(ww, II_new[80,:,int(pm.qnd/2)])
+plt.plot(ww, II_new[0,:,int(pm.qnd/2)])
+plt.plot(ww, II_new[1,:,int(pm.qnd/2)])
 plt.show()
-# print(II-II_new)
 plt.plot(zz,II[:,0,0])
 plt.plot(zz,II_new[:,0,0])
 plt.show()

@@ -6,13 +6,13 @@ import numpy as np
 import constants as cte
 
 zl = -np.log(1e2)                    # lower boundary optically thick
-zu = -np.log(1e-2)                   # upper boundary optically thin
+zu = -np.log(1e-3)                   # upper boundary optically thin
 dz = (zu-zl)/200                     # stepsize
 
 wl = cte.c/(5000e-9)               # lower/upper frequency limit
 wu = cte.c/(350e-9)
 w0 = cte.c/(1000e-9)
-wa = cte.c/(1000e-9) * 0.01          # normalization of the frec. for the Voigt
+wa = cte.c/(1000e-9) * 0.05          # normalization of the frec. for the Voigt
 dw = (wu-wl)/250                    # 100 points to sample the spectrum
 
 qnd = 100                            # nodes in the gaussian quadrature (# dirs)
