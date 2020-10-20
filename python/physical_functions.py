@@ -69,6 +69,13 @@ def plank_nu(nu, T):
     return (2*cte.h*nu**3)/(cte.c**2) * (1/(np.exp(cte.h*nu/(cte.kb*T)) - 1))
 
 
+def plank_wien(nu, T):
+    """
+    Return the Wien aproximation to the plank function
+    """
+    return (2*cte.h*nu**3)/(cte.c**2) * np.exp(- cte.h*nu/(cte.kb*T))
+
+
 def plank_lamb(lamb, T):
     """
     Return the Plank function at a given temperature and wavelength (IS)
