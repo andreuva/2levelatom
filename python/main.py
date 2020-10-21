@@ -22,9 +22,9 @@ zz = np.arange(pm.zl, pm.zu, pm.dz)          # compute the 1D grid
 ww = np.arange(pm.wl, pm.wu, pm.dw)          # Compute the 1D spectral grid
 
 # Define the directions of the rays
-mus = np.linspace(0.01, 1, pm.qnd)
+mus = np.linspace(-1, 1, pm.qnd)
 
-# ------------------------ INITIAL CONDITIONS -----------------------------
+# ------------------------ SOME INITIAL CONDITIONS -----------------------------
 # Compute the initial Voigts vectors
 phy = np.empty_like(ww)
 wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
@@ -41,27 +41,11 @@ plank_Ishape = II*1
 mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(ww), axis=0)[np.newaxis, :, :], len(zz), axis=0)
 phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 ww_shape = np.repeat(np.repeat(ww[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(ww), axis=1)[:, :, np.newaxis], len(mus), axis=2)
 
 QQ = II*0
 II_new = II*1
-QQ_new = QQ*1
-
-# Compute the source function as a tensor in of zz, ww, mus
-S00 = pm.eps*plank_Ishape
-SLI = S00*1
-SI = phy_shape/(phy_shape + pm.r) * SLI + (pm.r/(phy_shape + pm.r)) * plank_Ishape
-SQ = SI*0                                           # SQ = 0 (size of SI)
-
-plt.plot(ww, II[0,:,int(0)], color='k', label='Plank intensity')
-plt.plot(ww, SI[0,:,0], color='b', label='intensity with line')
-plt.plot(ww, SLI[0,:,0], color='r', label='line source function')
-plt.legend()
-plt.show()
-plt.plot(ww, (phy/(phy + pm.r)), color='r', label='line factor')
-plt.plot(ww, pm.r/(phy + pm.r), color='b', label='plank factor')
-plt.plot(ww, phy_shape[0,:,0], color='k', label='shape of line')
-plt.legend()
-plt.show()
+QQ_new = QQ*0
 
 #  ------------------- FUNCTIONS FOR THE SOLVE METHOD -------------------------------
 # Function to compute the coeficients of the Short Characteristics method
@@ -86,10 +70,11 @@ def psi_calc(deltaum, deltaup, mode='quad'):
 
 # ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ----------------------------
 
-# II = II*0
-# II[0] = plank_Ishape[0]
-SI = 0*II
-SQ = 0*II
+II = II*0
+II[0] = plank_Ishape[0]
+II_new = II*1
+SI = 0 * 1/1.5 * (plank_Ishape/plank_Ishape)
+SQ = 0 * 0.3/1.5 * (plank_Ishape/plank_Ishape)
 
 for j in range(len(mus)):
     taus = np.exp(-zz)/mus[j]
@@ -99,26 +84,56 @@ for j in range(len(mus)):
         psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
 
         # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-        II_new[i,:,j] = II_new[i,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
-        QQ_new[i,:,j] = QQ_new[i,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
+        II_new[i,:,j] = II_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+        QQ_new[i,:,j] = QQ_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
     psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
 
     # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-    II_new[-1,:,j] = II_new[-1,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
-    QQ_new[-1,:,j] = QQ_new[-1,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+    II_new[-1,:,j] = II_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+    QQ_new[-1,:,j] = QQ_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
 
-plt.plot(ww, II_new[0,:,int(pm.qnd/2)])
-plt.plot(ww, II_new[1,:,int(pm.qnd/2)])
+
+
+plt.plot(ww, II[0,:,-1])
+plt.plot(ww, II_new[10, :,-1])
 plt.show()
-plt.plot(zz,II[:,0,0])
-plt.plot(zz,II_new[:,0,0])
+plt.plot(zz,II[:,0,-1])
+plt.plot(zz,II_new[:,0,-1])
 plt.show()
-exit()
+
+Ip = (II+QQ)*np.exp(-((1+0.5)*zz_shape/mu_shape)) + (1+0.3)/(1+0.5)*(1-np.exp(-((1+0.5)*zz_shape/mu_shape)))
+Im = (II-QQ)*np.exp(-((1-0.5)*zz_shape/mu_shape)) + (1-0.3)/(1-0.5)*(1-np.exp(-((1-0.5)*zz_shape/mu_shape)))
+Ip_calc = II_new + QQ_new
+Im_calc = II_new - QQ_new
+plt.plot(zz, Ip[:, 50, -1], 'b', label='$I_{+}$')
+plt.plot(zz, Im[:, 50, -1], 'b--', label='$I_{-}$')
+plt.plot(zz, Ip_calc[:, 50, -1], 'r', label='$I_{+, calc}$')
+plt.plot(zz, Im_calc[:, 50, -1], 'r--', label='$I_{-, calc}$')
+plt.legend()
+plt.show()
 
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
+
+# Compute the source function as a tensor in of zz, ww, mus
+S00 = 0*plank_Ishape
+S00[0] = pm.eps*plank_Ishape[0]
+SLI = S00*1
+SI = phy_shape/(phy_shape + pm.r) * SLI + (pm.r/(phy_shape + pm.r)) * plank_Ishape
+SQ = SI*0                                           # SQ = 0 (size of SI)
+
+plt.plot(ww, II[0,:,int(0)], color='k', label='Plank intensity')
+plt.plot(ww, SI[0,:,0], color='b', label='intensity with line')
+plt.plot(ww, SLI[0,:,0], color='r', label='line source function')
+plt.legend()
+plt.show()
+plt.plot(ww, (phy/(phy + pm.r)), color='r', label='line factor')
+plt.plot(ww, pm.r/(phy + pm.r), color='b', label='plank factor')
+plt.plot(ww, phy_shape[0,:,0], color='k', label='shape of line')
+plt.legend()
+plt.show()
 
 w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j3(1, 1, 2, pm.ju, pm.ju, pm.jl)
 
@@ -134,14 +149,15 @@ for i in tqdm(range(10)):
             psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
 
             # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-            II_new[i,:,j] = II_new[i,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
-            QQ_new[i,:,j] = QQ_new[i,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
+            II_new[i,:,j] = II_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+            QQ_new[i,:,j] = QQ_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
         psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
 
         # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-        II_new[-1,:,j] = II_new[-1,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
-        QQ_new[-1,:,j] = QQ_new[-1,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+        II_new[-1,:,j] = II_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+        QQ_new[-1,:,j] = QQ_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     # print('computing the components of the radiative tensor')
 
@@ -171,9 +187,9 @@ for i in tqdm(range(10)):
     II = II_new
     QQ = QQ_new
 
-plt.plot(ww, II[100,:,int(50)], color='k', label='Intensity')
-plt.plot(ww, SI[100,:,50], color='b', label='Source function')
-plt.plot(ww, SLI[100,:,50], color='r', label='line source function')
+plt.plot(ww, II[0,:,int(50)], color='k', label='Intensity')
+plt.plot(ww, SI[0,:,50], color='b', label='Source function')
+# plt.plot(ww, SLI[0,:,50], color='r', label='line source function')
 plt.legend()
 plt.show()
 plt.plot(zz,II[:,0,0], color='k', label='$I(z)$')

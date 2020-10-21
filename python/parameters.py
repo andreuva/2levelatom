@@ -5,8 +5,8 @@
 import numpy as np
 import constants as cte
 
-zl = -np.log(1e2)                    # lower boundary optically thick
-zu = -np.log(1e-2)                   # upper boundary optically thin
+zl = -np.log(1e0)                    # lower boundary optically thick
+zu = -np.log(1e-3)                   # upper boundary optically thin
 dz = (zu-zl)/200                     # stepsize
 
 wl = cte.c/(5000e-9)               # lower/upper frequency limit
