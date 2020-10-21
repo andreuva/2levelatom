@@ -85,6 +85,7 @@ def psi_calc(deltaum, deltaup, mode='quad'):
 
 
 # ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ----------------------------
+
 # II = II*0
 # II[0] = plank_Ishape[0]
 SI = 0*II
@@ -128,20 +129,19 @@ for i in tqdm(range(10)):
     for j in range(len(mus)):
         taus = np.exp(-zz)/mus[j]
         deltau = abs(taus[1:] - taus[:-1])
-        for i in range(len(zz)-2):
+        for i in range(1,len(zz)-1):
 
-            psim,psio,psip = psi_calc(deltau[i], deltau[i+1])
+            psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
 
             # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
-            II_new[i+1,:,j] = II_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i,:,j]*psim + SI[i+1,:,j]*psio + SI[i+2,:,j]*psip
-            QQ_new[i+1,:,j] = QQ_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i,:,j]*psim + SQ[i+1,:,j]*psio + SQ[i+2,:,j]*psip
+            II_new[i,:,j] = II_new[i,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+            QQ_new[i,:,j] = QQ_new[i,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
         psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
 
         # print(i,j, II.shape, QQ.shape, SI.shape, SQ.shape, deltau.shape)
         II_new[-1,:,j] = II_new[-1,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
         QQ_new[-1,:,j] = QQ_new[-1,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
-
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     # print('computing the components of the radiative tensor')
 
@@ -171,11 +171,15 @@ for i in tqdm(range(10)):
     II = II_new
     QQ = QQ_new
 
-plt.plot(ww, II[0,:,int(pm.qnd/2)])
-plt.plot(ww, SI[40,:,0])
-plt.plot(ww, SLI[40,:,0])
+plt.plot(ww, II[100,:,int(50)], color='k', label='Intensity')
+plt.plot(ww, SI[100,:,50], color='b', label='Source function')
+plt.plot(ww, SLI[100,:,50], color='r', label='line source function')
+plt.legend()
 plt.show()
-plt.plot(zz, SI[:,0,0])
+plt.plot(zz,II[:,0,0], color='k', label='$I(z)$')
+plt.plot(zz,II_new[:,0,0], color='b', label='$I_{new}(z)$')
+plt.plot(zz,SI[:,0,0], color = 'r', label = '$S_I$')
+plt.legend()
 plt.show()
 
 # tolerancia en todas las capas en SO0, S02
