@@ -73,11 +73,11 @@ def psi_calc(deltaum, deltaup, mode='quad'):
 II = II*0
 II[0] = plank_Ishape[0]
 II_new = II*1
-SI = 0 * 1/1.5 * (plank_Ishape/plank_Ishape)
-SQ = 0 * 0.3/1.5 * (plank_Ishape/plank_Ishape)
+SI = 0.1/2 * (plank_Ishape/plank_Ishape)
+SQ = 0.05/2 * (plank_Ishape/plank_Ishape)
 
 for j in range(len(mus)):
-    taus = np.exp(-zz)/mus[j]
+    taus = 2*np.exp(-zz)/mus[j]
     deltau = abs(taus[1:] - taus[:-1])
     for i in range(1,len(zz)-1):
 
@@ -99,20 +99,23 @@ plt.plot(ww, II[0,:,-1])
 plt.plot(ww, II_new[10, :,-1])
 plt.show()
 plt.plot(zz,II[:,0,-1])
+plt.plot(zz,QQ_new[:,0,-1])
 plt.plot(zz,II_new[:,0,-1])
 plt.show()
-
-Ip = (II+QQ)*np.exp(-((1+0.5)*zz_shape/mu_shape)) + (1+0.3)/(1+0.5)*(1-np.exp(-((1+0.5)*zz_shape/mu_shape)))
-Im = (II-QQ)*np.exp(-((1-0.5)*zz_shape/mu_shape)) + (1-0.3)/(1-0.5)*(1-np.exp(-((1-0.5)*zz_shape/mu_shape)))
-Ip_calc = II_new + QQ_new
-Im_calc = II_new - QQ_new
+print(zz_shape-np.min(zz_shape))
+Ip = II*np.exp(-((2)*(zz_shape-np.min(zz_shape))/mu_shape)) + 0.1/2*(1-np.exp(-(2*zz_shape-np.min(zz_shape)/mu_shape)))
+Im = QQ*np.exp(-((2)*(zz_shape-np.min(zz_shape))/mu_shape)) + 0.05/2*(1-np.exp(-(2*zz_shape-np.min(zz_shape)/mu_shape)))
+Ip_calc = II_new
+Im_calc = QQ_new
 plt.plot(zz, Ip[:, 50, -1], 'b', label='$I_{+}$')
 plt.plot(zz, Im[:, 50, -1], 'b--', label='$I_{-}$')
 plt.plot(zz, Ip_calc[:, 50, -1], 'r', label='$I_{+, calc}$')
 plt.plot(zz, Im_calc[:, 50, -1], 'r--', label='$I_{-, calc}$')
+plt.plot(zz, Ip_calc[:, 50, -1]*1.2, 'g', label='$I_{+, calc}$ esc')
+plt.plot(zz, Im_calc[:, 50, -1]*1.2, 'g--', label='$I_{-, calc}$ esc')
 plt.legend()
 plt.show()
-
+exit()
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
