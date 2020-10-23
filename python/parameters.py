@@ -19,12 +19,13 @@ qnd = 100                            # nodes in the gaussian quadrature (# dirs)
 
 T = 5778                            # T (isotermic) of the medium
 
-a = 10                               # dumping Voigt profile a=gam/(2^1/2*sig)
+a = 0.2                               # dumping Voigt profile a=gam/(2^1/2*sig)
 r = 0.5                             # line strength XCI/XLI
-eps = 1e-1                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
+eps = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col = 0.5                       # Depolirarization colisions (delta)
 Hd = 1/5                            # Hanle depolarization factor [1/5, 1]
 ju = 1
 jl = 0
 
 tolerance = 1e-15                         # Tolerance for finding the solution
+max_iter = 20                            # maximum number of iterations to find the solution
