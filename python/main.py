@@ -20,13 +20,13 @@ zz = np.arange(pm.zl, pm.zu, pm.dz)          # compute the 1D grid
 ww = np.arange(pm.wl, pm.wu, pm.dw)          # Compute the 1D spectral grid
 
 # Define the directions of the rays
-mus = np.linspace(-1, 1, pm.qnd)
+mus = np.arange(-1, 1, pm.qnd)
 
 # ------------------------ SOME INITIAL CONDITIONS --------------------------
 # Compute the initial Voigts vectors
 phy = np.empty_like(ww)
 wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
-for i in range(len(ww)):
+for i in range(len(wnorm)):
     phy[i] = np.real(func.voigt(wnorm[i], pm.a))
 phy = phy/integ.simps(phy, wnorm)          # normalice phy to sum 1
 
@@ -58,7 +58,7 @@ def psi_calc(deltaum, deltaup, mode='quad'):
     else:
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
-def RTE_SC_solve(II,QQ,SI,SQ,zz,mus, tau_z = 'imp'):
+def RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, tau_z = 'imp'):
     for j in range(len(mus)):
         
         if tau_z == 'exp':
@@ -85,7 +85,7 @@ def RTE_SC_solve(II,QQ,SI,SQ,zz,mus, tau_z = 'imp'):
 # ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ------------------------
 # We define the ilumination just at the bottom boundary
 # Initialaice the used tensors
-II = plank_Ishape*0
+'''II = plank_Ishape*0
 QQ = II*0
 II[0] = plank_Ishape[0]
 # Define the new vectors as the old ones
@@ -95,28 +95,25 @@ QQ_new = QQ*0
 SI = 0.5*(plank_Ishape/plank_Ishape)
 SQ = 0.25*(plank_Ishape/plank_Ishape)
 
-II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'exp')
+II_new, QQ_new = RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, 'exp')
 
 II = II*np.exp(-((zz_shape-np.min(zz_shape))/mu_shape)) + 0.5*(1-np.exp(-(zz_shape-np.min(zz_shape)/mu_shape)))
 QQ = QQ*np.exp(-((zz_shape-np.min(zz_shape))/mu_shape)) + 0.25*(1-np.exp(-(zz_shape-np.min(zz_shape)/mu_shape)))
-II_calc = II_new
-QQ_calc = QQ_new
 
 plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
 plt.plot(zz, QQ[:, 50, -1], 'b--', label='$Q$')
-plt.plot(zz, II_calc[:, 50, -1], 'rx', label='$I_{calc}$')
-plt.plot(zz, QQ_calc[:, 50, -1], 'rx', label='$Q_{calc}$')
+plt.plot(zz, II_new[:, 50, -1], 'rx', label='$I_{calc}$')
+plt.plot(zz, QQ_new[:, 50, -1], 'rx', label='$Q_{calc}$')
 plt.legend()
-plt.show()
+plt.show()'''
 
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
-
 # Compute the source function as a tensor in of zz, ww, mus
 # Initialaice the used tensors
-II = plank_Ishape*0
-II[0] = plank_Ishape[0]
+II = plank_Ishape
+# II[0] = plank_Ishape[0]
 QQ = II*0
 II_new = II*1
 QQ_new = QQ*0
@@ -139,24 +136,39 @@ plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'
 plt.legend()
 plt.show()
 
-w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j3(1, 1, 2, pm.ju, pm.ju, pm.jl)
+print(jsymbols.j6(1,1,2,1,1,0))
+w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j6(int(1), int(1), int(2), int(pm.ju), int(pm.ju), int(pm.jl))
+print(w2jujl)
 
 for i in range(pm.max_iter):
     # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
     print('Solving the Radiative Transpor Equations')
-    II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
+    II_new, QQ_new = RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, 'imp')
+    plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
+    plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
+    plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
+    plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
+    plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
+    plt.show()
+    plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
+    plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
+    plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
+    plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
+    plt.legend(); plt.xlabel('z')
+    plt.show()
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     print('computing the components of the radiative tensor')
 
     Jm00 = integ.simps(phy_shape*II_new, mus)
-    Jm00 = 1/2 * integ.simps( Jm00, ww)
+    Jm00 = 1/2 * integ.simps( Jm00, wnorm)
     Jm02 = phy_shape * (3*mu_shape**2 - 1)*II_new + 3*(mu_shape**2 - 1)*QQ_new
     Jm02 = integ.simps( Jm02, mus )
-    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, ww)
+    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, wnorm)
 
-    plt.plot(zz,Jm00, 'bx', label='$J^0_0$')
-    plt.plot(zz,Jm02, 'ro', label='$J^2_0$')
+    plt.plot(zz,Jm00, 'b--', label='$J^0_0$')
+    plt.plot(zz,Jm02, 'r-.', label='$J^2_0$')
+    plt.legend()
     plt.show()
 
     # print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
@@ -178,7 +190,6 @@ for i in range(pm.max_iter):
 
     print('Computing the differences and reasign the intensities')
     diff = np.append(np.append(np.append(II - II_new, QQ - QQ_new), SI-SI_new), SQ-SQ_new)
-    print(np.max(np.abs(diff)))
     if( np.all( np.abs(diff) < pm.tolerance ) ):
         print('-------------- FINISHED!!---------------')
         plt.show()
