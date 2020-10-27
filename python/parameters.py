@@ -8,13 +8,13 @@ T = 5778                            # T (isotermic) of the medium
 
 zl = -np.log(1e0)                    # lower boundary optically thick
 zu = -np.log(1e-3)                   # upper boundary optically thin
-dz = (zu-zl)/200                     # stepsize
+dz = (zu-zl)/250                     # stepsize
 
 wl = cte.c/(510e-9)               # lower/upper frequency limit
 wu = cte.c/(490e-9)
 w0 = cte.c/(500e-9)
 wa = w0*(np.sqrt(2*cte.R*T/1e-3))/cte.c          # normalization of the frec. for the Voigt
-dw = (wu-wl)/250                    # points to sample the spectrum
+dw = (wu-wl)/150                    # points to sample the spectrum
 
 qnd = 100                            # nodes in the gaussian quadrature (# dirs)
 

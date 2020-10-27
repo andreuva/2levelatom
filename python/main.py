@@ -152,8 +152,8 @@ for i in range(pm.max_iter):
     II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
     
     plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
-    plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
     plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
+    plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
     plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
     plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
     plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
@@ -165,6 +165,11 @@ for i in range(pm.max_iter):
     plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
     plt.legend(); plt.xlabel('z')
     plt.show()
+
+    plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
+    plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+    # plt.imshow(QQ[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q$'); plt.colorbar(); plt.show()
+    # plt.imshow(QQ_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     print('computing the components of the radiative tensor')
@@ -185,10 +190,10 @@ for i in range(pm.max_iter):
 
     plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
     plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
-    plt.plot(zz,Jm00/plank_Ishape[:,125,-1], 'k--', label=r'$J^0_0/B_\nu$')
-    plt.plot(zz,Jm02/plank_Ishape[:,125,-1], 'g-.', label=r'$J^2_0/B_\nu$')
-    plt.legend()
-    plt.show()
+    plt.legend(); plt.show()
+
+    # plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    # plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
@@ -199,13 +204,29 @@ for i in range(pm.max_iter):
     SI_new = phy_shape/(phy_shape + pm.r)*SLI_new + pm.r/(phy_shape + pm.r)*plank_Ishape
     SQ_new = phy_shape/(phy_shape + pm.r)*SLQ_new
 
-
-    plt.plot(ww, SI[20,:,-1], color='b', label=r'$S_I(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SI_new[20,:,-1], color='r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLI[20,:,-1], 'b--', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLI_new[20,:,-1], 'r--', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SI[13,:,49], 'k', label=r'$S_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SQ[13,:,49], 'k--', label=r'$S_Q(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI[13,:,49], 'b', label=r'$S^L_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLQ[13,:,49], 'b--', label=r'$S^L_Q(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SI_new[13,:,49], 'r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SQ_new[13,:,49], 'r--', label=r'$S_{Q,new}(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI_new[13,:,49], 'g', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLQ_new[13,:,49], 'g--', label=r'$S^L_{Q,new}(\nu,z= ,\mu=1)$')
     plt.legend()    
     plt.show()
+
+    plt.imshow(SI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow(SQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
+    plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
+    plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
+    plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
+    plt.imshow(SLQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
+    plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
+    plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
+
+
 
     print('Computing the differences and reasign the intensities')
     diff = np.append(np.append(np.append(II - II_new, QQ - QQ_new), SI-SI_new), SQ-SQ_new)
