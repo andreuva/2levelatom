@@ -249,7 +249,7 @@ class jsymbols():
                   self.__fn2(ij4,ij2,ij6) + \
                   self.__fn2(ij4,ij5,ij3)
 
-          for i in range(ijm,ijx+1):
+          for i in range(int(ijm),int(ijx)+1):
 
               term2 = self.logfct(i+1) - self.logfct(i-ijm1) - \
                       self.logfct(i-ijm2) - self.logfct(i-ijm3) - \

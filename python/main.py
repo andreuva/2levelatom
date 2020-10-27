@@ -20,15 +20,16 @@ zz = np.arange(pm.zl, pm.zu, pm.dz)          # compute the 1D grid
 ww = np.arange(pm.wl, pm.wu, pm.dw)          # Compute the 1D spectral grid
 
 # Define the directions of the rays
-mus = np.arange(-1, 1, pm.qnd)
+mus = np.linspace(-1, 1, pm.qnd)
 
 # ------------------------ SOME INITIAL CONDITIONS --------------------------
 # Compute the initial Voigts vectors
-phy = np.empty_like(ww)
+phy = np.zeros_like(ww)
 wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
 for i in range(len(wnorm)):
     phy[i] = np.real(func.voigt(wnorm[i], pm.a))
 phy = phy/integ.simps(phy, wnorm)          # normalice phy to sum 1
+print('integral of the Voigt profile: ', integ.simps(phy,wnorm))
 
 # Initialaice the intensities vectors to solve the ETR
 # Computed as a tensor in zz, ww, mus
@@ -58,7 +59,9 @@ def psi_calc(deltaum, deltaup, mode='quad'):
     else:
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
-def RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, tau_z = 'imp'):
+def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
+    I_new = np.copy(I)
+    Q_new = np.copy(Q)
     for j in range(len(mus)):
         
         if tau_z == 'exp':
@@ -72,28 +75,29 @@ def RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, tau_z = 'imp'):
         for i in range(1,len(zz)-1):
 
             psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
-            II_new[i,:,j] = II_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
-            QQ_new[i,:,j] = QQ_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
+            I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+            Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
         psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
-        II_new[-1,:,j] = II_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
-        QQ_new[-1,:,j] = QQ_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+        I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+        Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
     
-    return II_new,QQ_new
+    return I_new,Q_new
 
 
 # ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ------------------------
 # We define the ilumination just at the bottom boundary
 # Initialaice the used tensors
-'''II = plank_Ishape*0
-QQ = II*0
+'''
+II = np.zeros_like(plank_Ishape)
+QQ = np.zeros_like(II)
 II[0] = plank_Ishape[0]
 # Define the new vectors as the old ones
-II_new = II*1
-QQ_new = QQ*0
+II_new = np.copy(II)
+QQ_new = np.copy(QQ)
 # Define the source function as a constant value with the dimensions of II
-SI = 0.5*(plank_Ishape/plank_Ishape)
-SQ = 0.25*(plank_Ishape/plank_Ishape)
+SI = 0.5*np.ones_like(II)
+SQ = 0.25*np.ones_like(QQ)
 
 II_new, QQ_new = RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, 'exp')
 
@@ -105,27 +109,30 @@ plt.plot(zz, QQ[:, 50, -1], 'b--', label='$Q$')
 plt.plot(zz, II_new[:, 50, -1], 'rx', label='$I_{calc}$')
 plt.plot(zz, QQ_new[:, 50, -1], 'rx', label='$Q_{calc}$')
 plt.legend()
-plt.show()'''
-
+plt.show()
+'''
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
 # Compute the source function as a tensor in of zz, ww, mus
 # Initialaice the used tensors
-II = plank_Ishape
+II = np.copy(plank_Ishape)
 # II[0] = plank_Ishape[0]
-QQ = II*0
-II_new = II*1
-QQ_new = QQ*0
+QQ = np.zeros_like(II)
+II_new = np.copy(II)
+QQ_new = np.zeros_like(QQ)
+
 
 S00 = pm.eps*plank_Ishape
-SLI = S00*1
+SLI = np.copy(S00)
+SLQ = np.zeros_like(SLI)
 SI = phy_shape/(phy_shape + pm.r) * SLI + (pm.r/(phy_shape + pm.r)) * plank_Ishape
-SQ = SI*0                                           # SQ = 0 (size of SI)
+SQ = np.zeros_like(SI)                                           # SQ = 0 (size of SI)
 
-plt.plot(ww, II[0,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
-plt.plot(ww, SI[0,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
-plt.plot(ww, SLI[0,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
+plt.plot(ww, II[50,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
+plt.plot(ww, QQ[50,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
+plt.plot(ww, SI[50,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
+plt.plot(ww, SLI[50,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
 plt.xlabel(r'$\nu\ (Hz)$')
 plt.legend()
 plt.show()
@@ -136,18 +143,20 @@ plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'
 plt.legend()
 plt.show()
 
-print(jsymbols.j6(1,1,2,1,1,0))
-w2jujl = (-1)**(1+pm.ju+pm.jl) * np.sqrt(3*(2*pm.ju + 1)) * jsymbols.j6(int(1), int(1), int(2), int(pm.ju), int(pm.ju), int(pm.jl))
-print(w2jujl)
+w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
 
 for i in range(pm.max_iter):
+
     # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
     print('Solving the Radiative Transpor Equations')
-    II_new, QQ_new = RTE_SC_solve(II_new,QQ_new,SI,SQ,zz,mus, 'imp')
+    II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
+    
     plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
     plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
     plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
     plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
+    plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
     plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
     plt.show()
     plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
@@ -166,11 +175,6 @@ for i in range(pm.max_iter):
     Jm02 = integ.simps( Jm02, mus )
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, wnorm)
 
-    plt.plot(zz,Jm00, 'b--', label='$J^0_0$')
-    plt.plot(zz,Jm02, 'r-.', label='$J^2_0$')
-    plt.legend()
-    plt.show()
-
     # print('The Jm00 component is: {} and the Jm02 is: {}'.format(Jm00[-1],Jm02[-1]))
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
     print('Computing the source function to close the loop and solve the ETR again')
@@ -179,26 +183,42 @@ for i in range(pm.max_iter):
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
 
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
+    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
+    plt.plot(zz,Jm00/plank_Ishape[:,125,-1], 'k--', label=r'$J^0_0/B_\nu$')
+    plt.plot(zz,Jm02/plank_Ishape[:,125,-1], 'g-.', label=r'$J^2_0/B_\nu$')
+    plt.legend()
+    plt.show()
+
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
 
-    SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
-    SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
+    SLI_new = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
+    SLQ_new = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 
-    SI_new = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
-    SQ_new = phy_shape/(phy_shape + pm.r)*SLQ
+    SI_new = phy_shape/(phy_shape + pm.r)*SLI_new + pm.r/(phy_shape + pm.r)*plank_Ishape
+    SQ_new = phy_shape/(phy_shape + pm.r)*SLQ_new
+
+
+    plt.plot(ww, SI[20,:,-1], color='b', label=r'$S_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SI_new[20,:,-1], color='r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI[20,:,-1], 'b--', label=r'$S^L_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI_new[20,:,-1], 'r--', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
+    plt.legend()    
+    plt.show()
 
     print('Computing the differences and reasign the intensities')
     diff = np.append(np.append(np.append(II - II_new, QQ - QQ_new), SI-SI_new), SQ-SQ_new)
     if( np.all( np.abs(diff) < pm.tolerance ) ):
         print('-------------- FINISHED!!---------------')
-        plt.show()
         break
 
-    II = II_new*1
-    QQ = QQ_new*1
-    SI = SI_new*1
-    SQ = SQ_new*1
+    II = np.copy(II_new)
+    QQ = np.copy(QQ_new)
+    SI = np.copy(SI_new)
+    SQ = np.copy(SQ_new)
+    SLI = np.copy(SLI_new)
+    SLQ = np.copy(SLQ_new)
 
 if (i >= pm.max_iter - 1):
     print('Ops! The solution with the desired tolerance has not been found')
@@ -206,9 +226,10 @@ if (i >= pm.max_iter - 1):
     print('the parameters to obtain an optimal solution.')
     print('The found tolerance is: ',np.max(diff))
 
-plt.plot(ww, II[0,:,int(50)], color='k', label='Intensity')
+print(II.shape)
+plt.plot(ww, II[0,:,50], color='k', label='Intensity')
 plt.plot(ww, SI[0,:,50], color='b', label='Source function')
-# plt.plot(ww, SLI[0,:,50], color='r', label='line source function')
+plt.plot(ww, SLI[0,:,50], color='r', label='line source function')
 plt.legend()
 plt.show()
 plt.plot(zz,II[:,0,0], color='k', label='$I(z)$')
