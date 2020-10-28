@@ -6,7 +6,7 @@ import numpy as np
 import constants as cte
 T = 5778                            # T (isotermic) of the medium
 
-zl = -np.log(1e0)                    # lower boundary optically thick
+zl = -np.log(1e3)                    # lower boundary optically thick
 zu = -np.log(1e-3)                   # upper boundary optically thin
 dz = (zu-zl)/250                     # stepsize
 

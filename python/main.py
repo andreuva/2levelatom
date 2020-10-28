@@ -29,7 +29,6 @@ wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
 for i in range(len(wnorm)):
     phy[i] = np.real(func.voigt(wnorm[i], pm.a))
 phy = phy/integ.simps(phy, wnorm)          # normalice phy to sum 1
-print('integral of the Voigt profile: ', integ.simps(phy,wnorm))
 
 # Initialaice the intensities vectors to solve the ETR
 # Computed as a tensor in zz, ww, mus
@@ -45,7 +44,7 @@ def psi_calc(deltaum, deltaup, mode='quad'):
 
     U0 = 1 - np.exp(-deltaum)
     U1 = deltaum - U0
-    U2 = deltaum**2 - 2*deltaum - 2 + 2*np.exp(-deltaum)
+    U2 = (deltaum)**2 - 2*U1
     
     if mode == 'quad':
         psim = U0 + (U2 - U1*(deltaup + 2*deltaum))/(deltaum*(deltaum + deltaup))
@@ -81,6 +80,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
                 print(np.unravel_index(np.argmin(I_new), I_new.shape))
                 print(i,j, np.min(I_new[i,:,j]))
                 print(psim,psio,psip)
+                print(deltau[i-1], deltau[i])
 
                 plt.plot(ww, I_new[i-1,:,j])
                 plt.plot(ww, I_new[i,:,j])
@@ -153,7 +153,6 @@ plt.legend()
 plt.show()
 
 w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-print(w2jujl)
 
 for i in range(pm.max_iter):
 
@@ -161,23 +160,23 @@ for i in range(pm.max_iter):
     print('Solving the Radiative Transpor Equations')
     II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
     
-    plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
-    plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
-    plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
-    plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
-    plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-    plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-    plt.show()
-    plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
-    plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
-    plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
-    plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
-    plt.legend(); plt.xlabel('z')
-    plt.show()
+    # plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
+    # plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
+    # plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
+    # plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
+    # plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
+    # plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
+    # plt.show()
+    # plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
+    # plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
+    # plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
+    # plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
+    # plt.legend(); plt.xlabel('z')
+    # plt.show()
 
-    plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
-    plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+    # plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
+    # plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
     # plt.imshow(QQ[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q$'); plt.colorbar(); plt.show()
     # plt.imshow(QQ_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
 
@@ -198,12 +197,12 @@ for i in range(pm.max_iter):
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
 
-    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
-    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
-    plt.legend(); plt.show()
+    # plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
+    # plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
+    # plt.legend(); plt.show()
 
-    plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-    plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    # plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    # plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
@@ -240,10 +239,6 @@ for i in range(pm.max_iter):
 
     print('Computing the differences and reasign the intensities')
     diff = np.append(np.append(np.append(II - II_new, QQ - QQ_new), SI-SI_new), SQ-SQ_new)
-    if( np.all( np.abs(diff) < pm.tolerance ) ):
-        print('-------------- FINISHED!!---------------')
-        break
-
     II = np.copy(II_new)
     QQ = np.copy(QQ_new)
     SI = np.copy(SI_new)
@@ -251,21 +246,27 @@ for i in range(pm.max_iter):
     SLI = np.copy(SLI_new)
     SLQ = np.copy(SLQ_new)
 
+    if( np.all( np.abs(diff) < pm.tolerance ) ):
+        print('-------------- FINISHED!!---------------')
+        break
+
 if (i >= pm.max_iter - 1):
     print('Ops! The solution with the desired tolerance has not been found')
     print('Although an aproximate solution may have been found. Try to change')
     print('the parameters to obtain an optimal solution.')
     print('The found tolerance is: ',np.max(diff))
 
-print(II.shape)
-plt.plot(ww, II[0,:,50], color='k', label='Intensity')
-plt.plot(ww, SI[0,:,50], color='b', label='Source function')
-plt.plot(ww, SLI[0,:,50], color='r', label='line source function')
+
+plt.plot(ww, II[-1,:,50], color='k', label='I')
+plt.plot(ww, QQ[-1,:,50], color='g', label='Q')
+plt.plot(ww, SI[-1,:,50], color='b', label='Source function')
+plt.plot(ww, SLI[-1,:,50], color='r', label='line source function')
 plt.legend()
 plt.show()
-plt.plot(zz,II[:,0,0], color='k', label='$I(z)$')
-plt.plot(zz,II_new[:,0,0], color='b', label='$I_{new}(z)$')
-plt.plot(zz,SI[:,0,0], color = 'r', label = '$S_I$')
+plt.plot(zz,II[:,40,-1], color='k', label='$I(z)$')
+plt.plot(zz,QQ[:,40,-1], color='g', label='$Q(z)$')
+plt.plot(zz,II_new[:,40,-1], color='b', label='$I_{new}(z)$')
+plt.plot(zz,SI[:,40,-1], color = 'r', label = '$S_I$')
 plt.legend()
 plt.show()
 
