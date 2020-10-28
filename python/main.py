@@ -77,6 +77,15 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
             psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
             I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
             Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
+            if np.min(I_new[i,:,j]) < 0:
+                print(np.unravel_index(np.argmin(I_new), I_new.shape))
+                print(i,j, np.min(I_new[i,:,j]))
+                print(psim,psio,psip)
+
+                plt.plot(ww, I_new[i-1,:,j])
+                plt.plot(ww, I_new[i,:,j])
+                plt.show()
+                exit()
 
         psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
         I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
@@ -88,7 +97,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
 # ------------- TEST ON THE SHORT CHARACTERISTICS METHOD ------------------------
 # We define the ilumination just at the bottom boundary
 # Initialaice the used tensors
-'''
+
 II = np.zeros_like(plank_Ishape)
 QQ = np.zeros_like(II)
 II[0] = plank_Ishape[0]
@@ -110,7 +119,7 @@ plt.plot(zz, II_new[:, 50, -1], 'rx', label='$I_{calc}$')
 plt.plot(zz, QQ_new[:, 50, -1], 'rx', label='$Q_{calc}$')
 plt.legend()
 plt.show()
-'''
+
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
@@ -144,6 +153,7 @@ plt.legend()
 plt.show()
 
 w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
+print(w2jujl)
 
 for i in range(pm.max_iter):
 
@@ -192,8 +202,8 @@ for i in range(pm.max_iter):
     plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
     plt.legend(); plt.show()
 
-    # plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-    # plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
@@ -204,27 +214,27 @@ for i in range(pm.max_iter):
     SI_new = phy_shape/(phy_shape + pm.r)*SLI_new + pm.r/(phy_shape + pm.r)*plank_Ishape
     SQ_new = phy_shape/(phy_shape + pm.r)*SLQ_new
 
-    plt.plot(ww, SI[13,:,49], 'k', label=r'$S_I(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SQ[13,:,49], 'k--', label=r'$S_Q(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLI[13,:,49], 'b', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLQ[13,:,49], 'b--', label=r'$S^L_Q(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SI_new[13,:,49], 'r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SQ_new[13,:,49], 'r--', label=r'$S_{Q,new}(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLI_new[13,:,49], 'g', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
-    plt.plot(ww, SLQ_new[13,:,49], 'g--', label=r'$S^L_{Q,new}(\nu,z= ,\mu=1)$')
-    plt.legend()    
-    plt.show()
+    # plt.plot(ww, SI[13,:,49], 'k', label=r'$S_I(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SQ[13,:,49], 'k--', label=r'$S_Q(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SLI[13,:,49], 'b', label=r'$S^L_I(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SLQ[13,:,49], 'b--', label=r'$S^L_Q(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SI_new[13,:,49], 'r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SQ_new[13,:,49], 'r--', label=r'$S_{Q,new}(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SLI_new[13,:,49], 'g', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
+    # plt.plot(ww, SLQ_new[13,:,49], 'g--', label=r'$S^L_{Q,new}(\nu,z= ,\mu=1)$')
+    # plt.legend()    
+    # plt.show()
 
-    plt.imshow(SI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-    plt.imshow(SI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
-    plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-    plt.imshow(SQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
-    plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
-    plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
-    plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
-    plt.imshow(SLQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
-    plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
-    plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
+    # plt.imshow(SI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    # plt.imshow(SI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
+    # plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    # plt.imshow(SQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
+    # plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
+    # plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
+    # plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
+    # plt.imshow(SLQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
+    # plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
+    # plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
 
 
 
