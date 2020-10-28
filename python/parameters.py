@@ -6,7 +6,7 @@ import numpy as np
 import constants as cte
 T = 5778                            # T (isotermic) of the medium
 
-zl = -np.log(1e3)                    # lower boundary optically thick
+zl = -np.log(1e0)                    # lower boundary optically thick
 zu = -np.log(1e-3)                   # upper boundary optically thin
 dz = (zu-zl)/250                     # stepsize
 
@@ -26,5 +26,5 @@ Hd = 1/5                            # Hanle depolarization factor [1/5, 1]
 ju = 1
 jl = 0
 
-tolerance = 1e-15                         # Tolerance for finding the solution
-max_iter = 5                            # maximum number of iterations to find the solution
+tolerance = 1e-10                         # Tolerance for finding the solution
+max_iter = 50                            # maximum number of iterations to find the solution

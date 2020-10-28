@@ -59,8 +59,10 @@ def psi_calc(deltaum, deltaup, mode='quad'):
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
 def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
+
     I_new = np.copy(I)
     Q_new = np.copy(Q)
+    
     for j in range(len(mus)):
         
         if tau_z == 'exp':
@@ -71,25 +73,49 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
             raise Exception('the way of computing tau(z,mu) should be exp or imp {} was introduced'.format(tau_z))
         
         deltau = np.abs(taus[1:] - taus[:-1])
-        for i in range(1,len(zz)-1):
+        if mus[j] < 0:
 
-            psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
-            I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
-            Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
-            if np.min(I_new[i,:,j]) < 0:
-                print(np.unravel_index(np.argmin(I_new), I_new.shape))
-                print(i,j, np.min(I_new[i,:,j]))
-                print(psim,psio,psip)
-                print(deltau[i-1], deltau[i])
+            for i in range(len(zz)-2,0,-1):
 
-                plt.plot(ww, I_new[i-1,:,j])
-                plt.plot(ww, I_new[i,:,j])
-                plt.show()
-                exit()
+                psim,psio,psip = psi_calc(deltaum = deltau[i], deltaup = deltau[i-1])
+                I_new[i,:,j] = I_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i+1,:,j]*psim + SI[i,:,j]*psio + SI[i-1,:,j]*psip
+                Q_new[i,:,j] = Q_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio + SQ[i-1,:,j]*psip
+                
+                if np.min(I_new[i,:,j]) < 0:
+                    print(np.unravel_index(np.argmin(I_new), I_new.shape))
+                    print(i,j, np.min(I_new[i,:,j]))
+                    print(psim,psio,psip)
+                    print(deltau[i-1], deltau[i])
 
-        psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
-        I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
-        Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+                    plt.plot(ww, I_new[i-1,:,j])
+                    plt.plot(ww, I_new[i,:,j])
+                    plt.show()
+                    exit()
+
+            psim, psio = psi_calc(deltaum = deltau[1], deltaup = deltau[0], mode='linear')
+            I_new[0,:,j] = I_new[1,:,j]*np.exp(-deltau[0]) + SI[1,:,j]*psim + SI[0,:,j]*psio 
+            Q_new[0,:,j] = Q_new[1,:,j]*np.exp(-deltau[0]) + SQ[1,:,j]*psim + SQ[0,:,j]*psio
+        else:
+            for i in range(1,len(zz)-1,1):
+
+                psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
+                I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
+                Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
+                
+                if np.min(I_new[i,:,j]) < 0:
+                    print(np.unravel_index(np.argmin(I_new), I_new.shape))
+                    print(i,j, np.min(I_new[i,:,j]))
+                    print(psim,psio,psip)
+                    print(deltau[i-1], deltau[i])
+
+                    plt.plot(ww, I_new[i-1,:,j])
+                    plt.plot(ww, I_new[i,:,j])
+                    plt.show()
+                    exit()
+
+            psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
+            I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
+            Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
     
     return I_new,Q_new
 
@@ -160,20 +186,20 @@ for i in range(pm.max_iter):
     print('Solving the Radiative Transpor Equations')
     II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
     
-    # plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
-    # plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
-    # plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
-    # plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
-    # plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
-    # plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-    # plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-    # plt.show()
-    # plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
-    # plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
-    # plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
-    # plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
-    # plt.legend(); plt.xlabel('z')
-    # plt.show()
+    plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
+    plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
+    plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
+    plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
+    plt.plot(ww, SI[-1,:,-1], color='k', label=r'$S_I(\nu,z= ,\mu=1)$')
+    plt.plot(ww, SLI[-1,:,-1], color='g', label=r'$S^L_I(\nu,z= ,\mu=1)$')
+    plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
+    plt.show()
+    plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
+    plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
+    plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
+    plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
+    plt.legend(); plt.xlabel('z')
+    plt.show()
 
     # plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
     # plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
@@ -197,12 +223,9 @@ for i in range(pm.max_iter):
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
 
-    # plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
-    # plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
-    # plt.legend(); plt.show()
-
-    # plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-    # plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
+    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
+    plt.legend(); plt.show()
 
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
@@ -226,14 +249,16 @@ for i in range(pm.max_iter):
 
     # plt.imshow(SI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
     # plt.imshow(SI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
-    # plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    # # plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
     # plt.imshow(SQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
-    # plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
-    # plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
-    # plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
+    # # plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
+    # # plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
+    # # plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
     # plt.imshow(SLQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
-    # plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
-    # plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
+    # # plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
+    # # plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
+    # plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    # plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 
 
 
@@ -245,7 +270,7 @@ for i in range(pm.max_iter):
     SQ = np.copy(SQ_new)
     SLI = np.copy(SLI_new)
     SLQ = np.copy(SLQ_new)
-
+    print(np.max(np.abs(diff)))
     if( np.all( np.abs(diff) < pm.tolerance ) ):
         print('-------------- FINISHED!!---------------')
         break
