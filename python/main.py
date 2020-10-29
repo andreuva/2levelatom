@@ -59,12 +59,11 @@ def psi_calc(deltaum, deltaup, mode='quad'):
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
 
 def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
-
+    
     I_new = np.copy(I)
     Q_new = np.copy(Q)
     
     for j in range(len(mus)):
-        
         if tau_z == 'exp':
             taus = -(zz-np.min(zz))/mus[j]
         elif tau_z == 'imp':
@@ -74,9 +73,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
         
         deltau = np.abs(taus[1:] - taus[:-1])
         if mus[j] < 0:
-
             for i in range(len(zz)-2,0,-1):
-
                 psim,psio,psip = psi_calc(deltaum = deltau[i], deltaup = deltau[i-1])
                 I_new[i,:,j] = I_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i+1,:,j]*psim + SI[i,:,j]*psio + SI[i-1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio + SQ[i-1,:,j]*psip
@@ -86,7 +83,6 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
             Q_new[0,:,j] = Q_new[1,:,j]*np.exp(-deltau[0]) + SQ[1,:,j]*psim + SQ[0,:,j]*psio
         else:
             for i in range(1,len(zz)-1,1):
-
                 psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
                 I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
@@ -94,7 +90,6 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
             psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
             I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
             Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
-    
     return I_new,Q_new
 
 # -----------------------------------------------------------------------------------
@@ -104,7 +99,7 @@ if __name__ == "__main__":
     # Compute the source function as a tensor in of zz, ww, mus
     # Initialaice the used tensors
     II = np.copy(plank_Ishape)
-    II[-1] = plank_Ishape[-1]*0
+    II[1:] = II[1:]*0
     QQ = np.zeros_like(II)
     II_new = np.copy(II)
     QQ_new = np.zeros_like(QQ)
@@ -129,10 +124,9 @@ if __name__ == "__main__":
     # plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
     # plt.legend()
     # plt.show()
-
     w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-
     D2 = False
+    plots = False
 
     for i in range(pm.max_iter):
 
@@ -143,26 +137,7 @@ if __name__ == "__main__":
         if np.min(II_new) < 0:
             print(np.unravel_index(np.argmin(II_new), II_new.shape))
             print(np.min(II_new))
-
-            # plt.plot(ww, II_new[np.unravel_index(np.argmin(II_new), II_new.shape)])
-            # plt.show()
-            exit()
-
-        plt.plot(ww, II[-1, :, -1], 'b', label='$I$')
-        plt.plot(ww, II_new[-1, :, -1], 'b-.', label='$I_{calc}$')
-        plt.plot(ww, SI[-1,:,-1], 'k', label=r'$S_I(\nu,z= ,\mu=1)$')
-        plt.plot(ww, SLI[-1,:,-1], 'k--', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-        plt.plot(ww, QQ[-1, :, -1], 'r--', label='$Q$')
-        plt.plot(ww, QQ_new[-1, :, -1], 'r.', label='$Q_{calc}$')
-        plt.plot(ww, SLQ[-1,:,-1], 'r', label=r'$S^L_Q(\nu,z= ,\mu=1)$')
-        plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-        plt.show()
-        plt.plot(zz, II[:, 50, -1], 'b', label='$I$')
-        plt.plot(zz, QQ[:, 50, -1], 'r--', label='$Q$')
-        plt.plot(zz, II_new[:, 50, -1], 'b-.', label='$I_{calc}$')
-        plt.plot(zz, QQ_new[:, 50, -1], 'r.', label='$Q_{calc}$')
-        plt.legend(); plt.xlabel('z')
-        plt.show()
+            # exit()
 
         # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
         print('computing the components of the radiative tensor')
@@ -180,10 +155,6 @@ if __name__ == "__main__":
         print('Computing the source function to close the loop and solve the ETR again')
         # computing Jm00 and Jm02 with tensor shape as the rest of the variables
 
-        plt.plot(zz,(Jm00_shape/plank_Ishape)[:,125,-1], 'b--', label=r'$J^0_0/B_\nu$ shape')
-        plt.plot(zz,(Jm02_shape/plank_Ishape)[:,125,-1], 'r-.', label=r'$J^2_0/B_\nu$ shape')
-        plt.legend(); plt.show()
-
         S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
         S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col**2) * w2jujl * Jm02_shape
 
@@ -193,18 +164,31 @@ if __name__ == "__main__":
         SI_new = phy_shape/(phy_shape + pm.r)*SLI_new + pm.r/(phy_shape + pm.r)*plank_Ishape
         SQ_new = phy_shape/(phy_shape + pm.r)*SLQ_new
 
-        # plt.plot(ww, SI[13,:,49], 'k', label=r'$S_I(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SQ[13,:,49], 'k--', label=r'$S_Q(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SLI[13,:,49], 'b', label=r'$S^L_I(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SLQ[13,:,49], 'b--', label=r'$S^L_Q(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SI_new[13,:,49], 'r', label=r'$S_{I,new}(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SQ_new[13,:,49], 'r--', label=r'$S_{Q,new}(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SLI_new[13,:,49], 'g', label=r'$S^L_{I,new}(\nu,z= ,\mu=1)$')
-        # plt.plot(ww, SLQ_new[13,:,49], 'g--', label=r'$S^L_{Q,new}(\nu,z= ,\mu=1)$')
-        # plt.legend()    
-        # plt.show()
-
-
+        if plots:
+            plt.plot(ww, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
+            plt.plot(ww, (II_new/plank_Ishape)[-1, :, -1], 'b--', label='$I_{calc}$')
+            # plt.plot(ww, (QQ/plank_Ishape)[-1, :, -1], 'r', label='$Q$')
+            # plt.plot(ww, (QQ_new/plank_Ishape)[-1, :, -1], 'r--', label='$Q_{calc}$')
+            plt.plot(ww, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I$')
+            plt.plot(ww, (SI_new/plank_Ishape)[-1,:,-1], 'm--', label=r'$S_{I,new}$')            
+            plt.plot(ww, (SLI/plank_Ishape)[-1,:,-1], 'g', label=r'$S^L_I$')
+            plt.plot(ww, (SLI_new/plank_Ishape)[-1,:,-1], 'g--', label=r'$S^L_{I,new}$')
+            # plt.plot(ww, (SQ/plank_Ishape)[-1,:,-1], 'k', label=r'$S_Q$')
+            # plt.plot(ww, (SQ_new/plank_Ishape)[-1,:,-1], 'k--', label=r'$S_{Q,new}$')
+            # plt.plot(ww, (SLQ/plank_Ishape)[-1,:,-1], 'k:', label=r'$S^L_Q$')
+            # plt.plot(ww, (SLQ_new/plank_Ishape)[-1,:,-1], 'k-.', label=r'$S^L_{Q,new}$')
+            plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
+            plt.show()
+            plt.plot(zz, (II_new/plank_Ishape)[:, 50, -1], 'b', label='$I$')
+            plt.plot(zz, (QQ_new/plank_Ishape)[:, 50, -1], 'b--', label='$Q$')
+            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,50,-1], 'g', label=r'$J^0_0/B_\nu$ shape')
+            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,-1], 'g--', label=r'$J^2_0/B_\nu$ shape')
+            plt.legend(); plt.xlabel('z'); plt.show()
+            plt.plot(zz, (II_new/plank_Ishape)[:, 50, 1], 'b', label='$I$')
+            plt.plot(zz, (QQ_new/plank_Ishape)[:, 50, 1], 'b--', label='$Q$')
+            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,50,1], 'g', label=r'$J^0_0/B_\nu$ shape')
+            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,1], 'g--', label=r'$J^2_0/B_\nu$ shape')
+            plt.legend(); plt.xlabel('z'); plt.show()
         if D2:
             plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
             plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
@@ -225,8 +209,8 @@ if __name__ == "__main__":
 
 
         print('Computing the differences and reasign the intensities')
-        olds = np.append(np.append(np.append(II, QQ), SI), SQ)
-        news = np.append(np.append(np.append(II_new, QQ_new), SI_new), SQ_new)
+        olds = np.array([II, QQ, SI, SQ])
+        news = np.array([II_new, QQ_new, SI_new, SQ_new])
         II = np.copy(II_new)
         QQ = np.copy(QQ_new)
         SI = np.copy(SI_new)
@@ -244,21 +228,20 @@ if __name__ == "__main__":
         print('Ops! The solution with the desired tolerance has not been found')
         print('Although an aproximate solution may have been found. Try to change')
         print('the parameters to obtain an optimal solution.')
-        print('The found tolerance is: ',np.max(diff))
+        print('The found tolerance is: ',tol*100, '%')
 
-
-    plt.plot(ww, II[-1,:,50], color='k', label='I')
-    plt.plot(ww, QQ[-1,:,50], color='g', label='Q')
-    plt.plot(ww, SI[-1,:,50], color='b', label='Source function')
-    plt.plot(ww, SLI[-1,:,50], color='r', label='line source function')
-    plt.legend()
-    plt.show()
-    plt.plot(zz,II[:,40,-1], color='k', label='$I(z)$')
-    plt.plot(zz,QQ[:,40,-1], color='g', label='$Q(z)$')
-    plt.plot(zz,II_new[:,40,-1], color='b', label='$I_{new}(z)$')
-    plt.plot(zz,SI[:,40,-1], color = 'r', label = '$S_I$')
-    plt.legend()
-    plt.show()
+    plt.plot(ww, (II/plank_Ishape)[-1,:,-1], 'b', label='$I$')
+    plt.plot(ww, (QQ/II)[-1,:,-1], 'r', label='$Q$')
+    plt.plot(ww, (SI/plank_Ishape)[-1,:,-1], 'b--', label=r'$S_I$')
+    plt.plot(ww, (SQ/SI)[-1,:,-1], 'r--', label=r'$S_Q$')
+    plt.legend(); plt.xlabel(r'$\nu\ (Hz)$'); plt.show()
+    plt.plot(zz, (II/plank_Ishape)[:, 50, -1], 'b', label='$I$')
+    plt.plot(zz, (QQ/II)[:, 50, -1], 'b--', label='$Q$')
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,50,-1], 'g', label=r'$J^0_0/B_\nu$ shape')
+    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,-1], 'g--', label=r'$J^2_0/B_\nu$ shape')
+    plt.plot(zz, (SI/plank_Ishape)[:, 50, -1], 'k', label='$S_I$')
+    plt.plot(zz, (SQ/II)[:, 50, -1], 'k--', label='$S_Q$')
+    plt.legend(); plt.xlabel('z'); plt.show()
 
     # tolerancia en todas las capas en SO0, S02
 
