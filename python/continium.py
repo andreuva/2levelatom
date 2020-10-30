@@ -94,9 +94,12 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
-n=50
-plots = False
+
 if __name__ == "__main__":
+
+    n=50
+    plots = False
+
     # Compute the source function as a tensor in of zz, ww, mus
     # Initialaice the used tensors
     II = np.copy(plank_Ishape)
@@ -117,10 +120,7 @@ if __name__ == "__main__":
         if np.min(II_new) < 0:
             print(np.unravel_index(np.argmin(II_new), II_new.shape))
             print(np.min(II_new))
-
-            plt.plot(ww, II_new[np.unravel_index(np.argmin(II_new), II_new.shape)])
-            plt.show()
-            exit()
+            break
 
         if plots:
             plt.plot(zz, (II/plank_Ishape)[:, n, -1], 'b', label='$I$')
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         print('Ops! The solution with the desired tolerance has not been found')
         print('Although an aproximate solution may have been found. Try to change')
         print('the parameters to obtain an optimal solution.')
-        print('The found tolerance is: ',np.max(diff))
+        print('The found tolerance is: ',tol*100)
     
     print('finished after :',i,' iterations')
 
@@ -186,6 +186,16 @@ if __name__ == "__main__":
     plt.plot(zz,QQ[:,n,-1]/II[:,n,-1], 'g', label=r'$Q/I$')
     plt.plot(zz,SI[:,n,-1]/plank_Ishape[:,n,-1], 'k--', label = r'$S_I/B_{\nu}$')
     plt.plot(zz,SQ[:,n,-1]/SI[:,n,-1], 'g--', label = r'$S_Q/S_I$')
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
+    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
+    plt.legend()
+    plt.show()
+    plt.plot(zz,II[:,n,-1]/plank_Ishape[:,n,1], 'k', label=r'$I/B_{\nu}$')
+    plt.plot(zz,QQ[:,n,-1]/II[:,n,1], 'g', label=r'$Q/I$')
+    plt.plot(zz,SI[:,n,1]/plank_Ishape[:,n,-1], 'k--', label = r'$S_I/B_{\nu}$')
+    plt.plot(zz,SQ[:,n,1]/SI[:,n,-1], 'g--', label = r'$S_Q/S_I$')
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,1], 'r', label=r'$J^0_0/B_\nu$ shape')
+    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,1], 'r--', label=r'$J^2_0/B_\nu$ shape')
     plt.legend()
     plt.show()
 
