@@ -101,40 +101,44 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
 if __name__ == "__main__":
+
+    D2 = False
+    plots = False
+    initial = False
+    n = 50
+    m = -1
+
     # Compute the source function as a tensor in of zz, ww, mus
     # Initialaice the used tensors
     II = np.copy(plank_Ishape)
     II[-1] = II[-1]*0
-    QQ = np.zeros_like(II)
     II_new = np.copy(II)
-    QQ_new = np.zeros_like(QQ)
+    QQ = np.zeros_like(II)
+    QQ_new = np.zeros_like(II)
 
 
     S00 = np.copy(plank_Ishape)
-    SLI = np.copy(S00)
-    SLQ = np.zeros_like(SLI)
-    SI = phy_shape/(phy_shape + pm.r) * SLI + (pm.r/(phy_shape + pm.r)) * plank_Ishape
-    SQ = np.zeros_like(SI)                                           # SQ = 0 (size of SI)
+    SLI = np.copy(plank_Ishape)
+    SLQ = np.zeros_like(plank_Ishape)
+    SQ = np.zeros_like(plank_Ishape)
     SI = np.copy(plank_Ishape)
 
-    # plt.plot(ww, II[50,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
-    # plt.plot(ww, QQ[50,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
-    # plt.plot(ww, SI[50,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
-    # plt.plot(ww, SLI[50,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
-    # plt.xlabel(r'$\nu\ (Hz)$')
-    # plt.legend()
-    # plt.show()
-    # plt.plot(ww, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
-    # plt.plot(ww, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
-    # plt.plot(ww, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
-    # plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
-    # plt.legend()
-    # plt.show()
+    if initial:
+        plt.plot(ww, II[50,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
+        plt.plot(ww, QQ[50,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
+        plt.plot(ww, SI[50,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
+        plt.plot(ww, SLI[50,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
+        plt.xlabel(r'$\nu\ (Hz)$')
+        plt.legend()
+        plt.show()
+        plt.plot(ww, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
+        plt.plot(ww, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
+        plt.plot(ww, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
+        plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
+        plt.legend()
+        plt.show()
+
     w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-    
-    D2 = False
-    plots = False
-    n=50
 
     for i in range(pm.max_iter):
 
@@ -199,22 +203,24 @@ if __name__ == "__main__":
             plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,1], 'g--', label=r'$J^2_0/B_\nu$ shape')
             plt.legend(); plt.xlabel('z'); plt.show()
         if D2:
-            plt.imshow(II[:, :, -1], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
-            plt.imshow(II_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
-            plt.imshow(QQ[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q$'); plt.colorbar(); plt.show()
-            plt.imshow(QQ_new[:, :, -1], origin='lower', aspect='equal'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
-            plt.imshow(SI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-            plt.imshow(SI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
-            # plt.imshow(SQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-            plt.imshow(SQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
-            # plt.imshow(SLI[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
-            plt.imshow(SLI_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
-            # plt.imshow(SLQ[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
-            plt.imshow(SLQ_new[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
-            # plt.imshow(S20[:,:,49], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
-            # plt.imshow(Jm02_shape[:,:,49], origin='lower', aspect='equal'); plt.title(r'$J^2_0$');plt.colorbar(); plt.show()
-            plt.imshow((Jm00_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-            plt.imshow((Jm02_shape/plank_Ishape)[:,:,-1], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+            # plt.imshow(II[:, :, m], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
+            plt.imshow(II_new[:, :, m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+            plt.imshow(II_new[:, n, :], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+            # plt.imshow(QQ[:, :, 1], origin='lower', aspect='equal'); plt.title('$Q$'); plt.colorbar(); plt.show()
+            plt.imshow(QQ_new[:, :, m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+            plt.imshow(QQ_new[:, n, :], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+            # plt.imshow(SI[:,:,m], origin='lower', aspect='equal'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+            plt.imshow(SI_new[:,:,m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
+            # plt.imshow(SQ[:,:,1], origin='lower', aspect='equal'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+            plt.imshow(SQ_new[:,:,m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_{Q,new}$');plt.colorbar(); plt.show()
+            plt.imshow(SQ_new[:, n, :], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$S_{Q}$');plt.colorbar(); plt.show()
+            # plt.imshow(SLI[:,:,1], origin='lower', aspect='equal'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
+            plt.imshow(SLI_new[:,:,m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S^L_{I,new}$');plt.colorbar(); plt.show()
+            # plt.imshow(SLQ[:,:,m], origin='lower', aspect='equal'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
+            plt.imshow(SLQ_new[:,:,m], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S^L_{Q,new}$');plt.colorbar(); plt.show()
+            # plt.imshow(S20[:,:,m], origin='lower', aspect='equal'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
+            plt.imshow((Jm00_shape/plank_Ishape)[:,:,1], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+            plt.imshow((Jm02_shape/plank_Ishape)[:,:,1], origin='lower', aspect='equal'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 
 
         print('Computing the differences and reasign the intensities')
@@ -254,14 +260,21 @@ if __name__ == "__main__":
     plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
     plt.legend()
     plt.show()
-    plt.plot(zz,II[:,n,-1]/plank_Ishape[:,n,1], 'k', label=r'$I/B_{\nu}$')
-    plt.plot(zz,QQ[:,n,-1]/II[:,n,1], 'g', label=r'$Q/I$')
-    plt.plot(zz,SI[:,n,1]/plank_Ishape[:,n,-1], 'k--', label = r'$S_I/B_{\nu}$')
+    plt.plot(zz,II[:,n,1]/plank_Ishape[:,n,1], 'k', label=r'$I/B_{\nu}$')
+    plt.plot(zz,QQ[:,n,1]/II[:,n,1], 'g', label=r'$Q/I$')
+    plt.plot(zz,SI[:,n,1]/plank_Ishape[:,n,1], 'k--', label = r'$S_I/B_{\nu}$')
     plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,1], 'r', label=r'$J^0_0/B_\nu$ shape')
     plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,1], 'r--', label=r'$J^2_0/B_\nu$ shape')
-    plt.plot(zz,SQ[:,n,1]/SI[:,n,-1], 'g--', label = r'$S_Q/S_I$')
+    plt.plot(zz,SQ[:,n,1]/SI[:,n,1], 'g--', label = r'$S_Q/S_I$')
     plt.legend()
     plt.show()
+    plt.imshow(II[:, n, :], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, n, :], origin='lower', aspect='equal'); plt.title('$Q$'); plt.colorbar(); plt.show()
+    plt.imshow(SI[:,n,:], origin='lower', aspect='equal'); plt.title('$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,n,:], origin='lower', aspect='equal'); plt.title('$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,n,:], origin='lower', aspect='equal'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,n,:], origin='lower', aspect='equal'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+
 
 
     # -------------------- ONCE WE OBTAIN THE SOLUTION, COMPUTE THE POPULATIONS ----------------

@@ -19,12 +19,12 @@ dw = (wu-wl)/150                    # points to sample the spectrum
 qnd = 100                            # nodes in the gaussian quadrature (# dirs)
 
 a = 1                               # dumping Voigt profile a=gam/(2^1/2*sig)
-r = 0                            # line strength XCI/XLI
+r = 0.001                               # line strength XCI/XLI
 eps = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col = 0.5                       # Depolirarization colisions (delta)
 Hd = 1/5                            # Hanle depolarization factor [1/5, 1]
 ju = 1
 jl = 0
 
-tolerance = 3e-2                         # Tolerance for finding the solution
+tolerance = 1e-2                         # Tolerance for finding the solution
 max_iter = 500                            # maximum number of iterations to find the solution

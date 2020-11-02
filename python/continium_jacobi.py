@@ -31,6 +31,7 @@ plank_Ishape = np.repeat(np.repeat(func.plank_wien(ww, pm.T)[ :, np.newaxis], le
 mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(ww), axis=0)[np.newaxis, :, :], len(zz), axis=0)
 ww_shape = np.repeat(np.repeat(ww[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(ww), axis=1)[:, :, np.newaxis], len(mus), axis=2)
+tau_shape = np.exp(-zz_shape)/mu_shape
 
 #  ------------------- FUNCTIONS FOR THE SOLVE METHOD --------------------------
 # Function to compute the coeficients of the Short Characteristics method
@@ -56,7 +57,8 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
 
     I_new = np.copy(I)
     Q_new = np.copy(Q)
-    
+    l_st = np.zeros_like(I)
+
     for j in range(len(mus)):
         
         if tau_z == 'exp':
@@ -68,28 +70,31 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
         
         deltau = np.abs(taus[1:] - taus[:-1])
         if mus[j] < 0:
-
             for i in range(len(zz)-2,0,-1):
 
+                l_st[i,:,j] = 1 - (1-np.exp(-deltau[i]/np.abs(mus[j])))/(deltau[i]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
                 psim,psio,psip = psi_calc(deltaum = deltau[i], deltaup = deltau[i-1])
                 I_new[i,:,j] = I_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i+1,:,j]*psim + SI[i,:,j]*psio + SI[i-1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio + SQ[i-1,:,j]*psip
 
+            l_st[0,:,j] = 1 - (1-np.exp(-deltau[0]/np.abs(mus[j])))/(deltau[0]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
             psim, psio = psi_calc(deltaum = deltau[1], deltaup = deltau[0], mode='linear')
-            I_new[0,:,j] = I_new[1,:,j]*np.exp(-deltau[0]) + SI[1,:,j]*psim + SI[0,:,j]*psio 
+            I_new[0,:,j] = I_new[1,:,j]*np.exp(-deltau[0]) + SI[1,:,j]*psim + SI[0,:,j]*psio
             Q_new[0,:,j] = Q_new[1,:,j]*np.exp(-deltau[0]) + SQ[1,:,j]*psim + SQ[0,:,j]*psio
         else:
             for i in range(1,len(zz)-1,1):
 
+                l_st[i,:,j] = 1 - (1-np.exp(-deltau[i-1]/np.abs(mus[j])))/(deltau[i-1]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
                 psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
                 I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
-                
+
+            l_st[-1,:,j] = 1 - (1-np.exp(-deltau[-1]/np.abs(mus[j])))/(deltau[-1]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
             psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
             I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
             Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
     
-    return I_new,Q_new
+    return I_new,Q_new, l_st
 
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
@@ -115,7 +120,7 @@ if __name__ == "__main__":
 
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
         print('Solving the Radiative Transpor Equations')
-        II_new, QQ_new = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
+        II_new, QQ_new, lamb_st = RTE_SC_solve(II,QQ,SI,SQ,zz,mus, 'imp')
         
         if np.min(II_new) < 0:
             print(np.unravel_index(np.argmin(II_new), II_new.shape))
@@ -154,19 +159,25 @@ if __name__ == "__main__":
         SI_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
         SQ_new = (1-pm.eps)*Jm02_shape
 
+        lamb_st = 1/2 * integ.simps(lamb_st, mus )
+        lamb_st = np.repeat(lamb_st[ :, :, np.newaxis], len(mus), axis=2)
+
+        SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lamb_st) + SI
+
         print('Computing the differences and reasign the intensities')
         olds = np.append(np.append(np.append(II, QQ), SI), SQ)
         news = np.append(np.append(np.append(II_new, QQ_new), SI_new), SQ_new)
-        II = np.copy(II_new)
-        QQ = np.copy(QQ_new)
-        SI = np.copy(SI_new)
-        SQ = np.copy(SQ_new)
         diff = np.abs(olds - news)
-        tol = np.max(diff)/news[np.unravel_index(np.argmax(diff), diff.shape)]
+        tol = np.max(diff)/np.abs(news[np.unravel_index(np.argmax(diff), diff.shape)])
         print('Actual tolerance is :',tol*100,'%')
         if( tol < pm.tolerance ):
             print('-------------- FINISHED!!---------------')
             break
+
+        II = np.copy(II_new)
+        QQ = np.copy(QQ_new)
+        SI = np.copy(SI_new)
+        SQ = np.copy(SQ_new)
 
     if (i >= pm.max_iter - 1):
         print('Ops! The solution with the desired tolerance has not been found')
