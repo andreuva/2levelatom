@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integ
+from tqdm import tqdm
 # local imports of constants parameters and functions
 import constants as cte
 import parameters as pm
@@ -70,29 +71,48 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
         
         deltau = np.abs(taus[1:] - taus[:-1])
         if mus[j] < 0:
+            psip_prev = 0
             for i in range(len(zz)-2,0,-1):
-
-                l_st[i,:,j] = 1 - (1-np.exp(-deltau[i]/np.abs(mus[j])))/(deltau[i]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
                 psim,psio,psip = psi_calc(deltaum = deltau[i], deltaup = deltau[i-1])
+
                 I_new[i,:,j] = I_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i+1,:,j]*psim + SI[i,:,j]*psio + SI[i-1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio + SQ[i-1,:,j]*psip
 
-            l_st[0,:,j] = 1 - (1-np.exp(-deltau[0]/np.abs(mus[j])))/(deltau[0]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
+                if psip_prev != 0:
+                    l_st[i,:,j] = psip_prev*np.exp(-deltau[i]) + psio 
+                else:
+                    l_st[i,:,j] = psip 
+                
+                psip_prev = psip
+
             psim, psio = psi_calc(deltaum = deltau[1], deltaup = deltau[0], mode='linear')
+
             I_new[0,:,j] = I_new[1,:,j]*np.exp(-deltau[0]) + SI[1,:,j]*psim + SI[0,:,j]*psio
             Q_new[0,:,j] = Q_new[1,:,j]*np.exp(-deltau[0]) + SQ[1,:,j]*psim + SQ[0,:,j]*psio
-        else:
-            for i in range(1,len(zz)-1,1):
 
-                l_st[i,:,j] = 1 - (1-np.exp(-deltau[i-1]/np.abs(mus[j])))/(deltau[i-1]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
+            l_st[0,:,j] = psip_prev*np.exp(-deltau[0]) + psio
+
+        else:
+            psip_prev = 0
+            for i in range(1,len(zz)-1,1):  
                 psim,psio,psip = psi_calc(deltau[i-1], deltau[i])
+
                 I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
-            l_st[-1,:,j] = 1 - (1-np.exp(-deltau[-1]/np.abs(mus[j])))/(deltau[-1]/np.abs(mus[j]))*np.ones_like(SI[i,:,j])  
+                if psip_prev != 0:
+                    l_st[i,:,j] = psip_prev*np.exp(-deltau[i-1]) + psio 
+                else:
+                    l_st[i,:,j] = psip
+                
+                psip_prev = psip
+ 
             psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
+            
             I_new[-1,:,j] = I_new[-2,:,j]*np.exp(-deltau[-1]) + SI[-2,:,j]*psim + SI[-1,:,j]*psio 
             Q_new[-1,:,j] = Q_new[-2,:,j]*np.exp(-deltau[-1]) + SQ[-2,:,j]*psim + SQ[-1,:,j]*psio
+
+            l_st[-1,:,j] = psip_prev*np.exp(-deltau[-1]) + psio
     
     return I_new,Q_new, l_st
 
@@ -116,7 +136,7 @@ if __name__ == "__main__":
     SI = np.copy(plank_Ishape)
     SQ = np.zeros_like(SI)                                           # SQ = 0 (size of SI)
 
-    for i in range(pm.max_iter):
+    for i in tqdm(range(pm.max_iter)):
 
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
         print('Solving the Radiative Transpor Equations')
@@ -161,7 +181,9 @@ if __name__ == "__main__":
 
         lamb_st = 1/2 * integ.simps(lamb_st, mus )
         lamb_st = np.repeat(lamb_st[ :, :, np.newaxis], len(mus), axis=2)
-
+        # plt.imshow(lamb_st[:,n,:]); plt.colorbar(); plt.show()
+        # plt.plot(zz, lamb_st[:,-1,-1])
+        # plt.show()
         SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lamb_st) + SI
 
         print('Computing the differences and reasign the intensities')

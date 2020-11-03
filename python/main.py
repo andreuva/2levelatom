@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integ
+from tqdm import tqdm
 # local imports of constants parameters and functions
 import constants as cte
 import parameters as pm
@@ -57,6 +58,26 @@ def psi_calc(deltaum, deltaup, mode='quad'):
         return psim, psio
     else:
         raise Exception('mode should be quad or lineal but {} was introduced'.format(mode))
+
+
+def trapez_3(y,x):
+    I = np.zeros(y.shape[:-1])
+    
+    for i in range(y.shape[0]):
+        for j in range(y.shape[1]):
+                for k in range(1,y.shape[2]):
+                    I[i,j] += (y[i,j,k-1] + y[i,j,k])*(x[k]-x[k-1])/2
+    return I
+
+
+def trapez_2(y,x):
+    I = np.zeros(y.shape[:-1])
+    
+    for i in range(y.shape[0]):
+        for k in range(y.shape[1]):
+                I[i] += (y[i,k-1] + y[i,k])*(x[k]-x[k-1])/2
+    return I
+
 
 def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
     
@@ -140,7 +161,7 @@ if __name__ == "__main__":
 
     w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
 
-    for i in range(pm.max_iter):
+    for i in tqdm(range(pm.max_iter)):
 
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
         print('Solving the Radiative Transpor Equations')
@@ -192,15 +213,15 @@ if __name__ == "__main__":
             # plt.plot(ww, (SLQ_new/plank_Ishape)[-1,:,-1], 'k-.', label=r'$S^L_{Q,new}$')
             plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
             plt.show()
-            plt.plot(zz, (II_new/plank_Ishape)[:, 50, -1], 'b', label='$I$')
-            plt.plot(zz, (QQ_new/plank_Ishape)[:, 50, -1], 'b--', label='$Q$')
-            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,50,-1], 'g', label=r'$J^0_0/B_\nu$ shape')
-            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,-1], 'g--', label=r'$J^2_0/B_\nu$ shape')
+            plt.plot(zz, (II_new/plank_Ishape)[:, n, -1], 'b', label='$I$')
+            plt.plot(zz, (QQ_new/plank_Ishape)[:, n, -1], 'b--', label='$Q$')
+            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,-1], 'g', label=r'$J^0_0/B_\nu$ shape')
+            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,-1], 'g--', label=r'$J^2_0/B_\nu$ shape')
             plt.legend(); plt.xlabel('z'); plt.show()
-            plt.plot(zz, (II_new/plank_Ishape)[:, 50, 1], 'b', label='$I$')
-            plt.plot(zz, (QQ_new/plank_Ishape)[:, 50, 1], 'b--', label='$Q$')
-            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,50,1], 'g', label=r'$J^0_0/B_\nu$ shape')
-            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,50,1], 'g--', label=r'$J^2_0/B_\nu$ shape')
+            plt.plot(zz, (II_new/plank_Ishape)[:, n, 1], 'b', label='$I$')
+            plt.plot(zz, (QQ_new/plank_Ishape)[:, n, 1], 'b--', label='$Q$')
+            plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,1], 'g', label=r'$J^0_0/B_\nu$ shape')
+            plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,1], 'g--', label=r'$J^2_0/B_\nu$ shape')
             plt.legend(); plt.xlabel('z'); plt.show()
         if D2:
             # plt.imshow(II[:, :, m], origin='lower', aspect='equal'); plt.title('$I$'); plt.colorbar(); plt.show()

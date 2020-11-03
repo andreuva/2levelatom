@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integ
+from tqdm import tqdm
 # local imports of constants parameters and functions
 import constants as cte
 import parameters as pm
@@ -111,7 +112,7 @@ if __name__ == "__main__":
     SI = np.copy(plank_Ishape)
     SQ = np.zeros_like(SI)                                           # SQ = 0 (size of SI)
 
-    for i in range(pm.max_iter):
+    for i in tqdm(range(pm.max_iter)):
 
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
         print('Solving the Radiative Transpor Equations')
