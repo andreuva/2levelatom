@@ -78,11 +78,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
                 I_new[i,:,j] = I_new[i+1,:,j]*np.exp(-deltau[i]) + SI[i+1,:,j]*psim + SI[i,:,j]*psio + SI[i-1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i+1,:,j]*np.exp(-deltau[i]) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio + SQ[i-1,:,j]*psip
 
-                if psip_prev != 0:
-                    l_st[i,:,j] = psip_prev*np.exp(-deltau[i]) + psio 
-                else:
-                    l_st[i,:,j] = psip 
-                
+                l_st[i,:,j] = psip_prev*np.exp(-deltau[i]) + psio  
                 psip_prev = psip
 
             psim, psio = psi_calc(deltaum = deltau[1], deltaup = deltau[0], mode='linear')
@@ -100,11 +96,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
                 I_new[i,:,j] = I_new[i-1,:,j]*np.exp(-deltau[i-1]) + SI[i-1,:,j]*psim + SI[i,:,j]*psio + SI[i+1,:,j]*psip
                 Q_new[i,:,j] = Q_new[i-1,:,j]*np.exp(-deltau[i-1]) + SQ[i-1,:,j]*psim + SQ[i,:,j]*psio + SQ[i+1,:,j]*psip
 
-                if psip_prev != 0:
-                    l_st[i,:,j] = psip_prev*np.exp(-deltau[i-1]) + psio 
-                else:
-                    l_st[i,:,j] = psip
-                
+                l_st[i,:,j] = psip_prev*np.exp(-deltau[i-1]) + psio
                 psip_prev = psip
  
             psim, psio = psi_calc(deltau[-2], deltau[-1], mode='linear')
@@ -122,7 +114,7 @@ def RTE_SC_solve(I,Q,SI,SQ,zz,mus, tau_z = 'imp'):
 
 if __name__ == "__main__":
 
-    n=50
+    n=3
     plots = False
 
     # Compute the source function as a tensor in of zz, ww, mus
@@ -136,6 +128,11 @@ if __name__ == "__main__":
     SI = np.copy(plank_Ishape)
     SQ = np.zeros_like(SI)                                           # SQ = 0 (size of SI)
 
+    SI_r = (1-pm.eps)*(1-np.exp(-tau_shape*np.sqrt(3*pm.eps))/(1+np.sqrt(pm.eps))) + pm.eps*plank_Ishape
+    error = []
+    MRC = []
+    lamb_st_old = 0
+    
     for i in tqdm(range(pm.max_iter)):
 
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
@@ -180,6 +177,8 @@ if __name__ == "__main__":
         SQ_new = (1-pm.eps)*Jm02_shape
 
         lamb_st = 1/2 * integ.simps(lamb_st, mus )
+        print(np.max(np.abs(lamb_st-lamb_st_old)))
+        lamb_st_old = lamb_st
         lamb_st = np.repeat(lamb_st[ :, :, np.newaxis], len(mus), axis=2)
         # plt.imshow(lamb_st[:,n,:]); plt.colorbar(); plt.show()
         # plt.plot(zz, lamb_st[:,-1,-1])
@@ -190,7 +189,9 @@ if __name__ == "__main__":
         olds = np.append(np.append(np.append(II, QQ), SI), SQ)
         news = np.append(np.append(np.append(II_new, QQ_new), SI_new), SQ_new)
         diff = np.abs(olds - news)
-        tol = np.max(diff)/np.abs(news[np.unravel_index(np.argmax(diff), diff.shape)])
+        tol = np.max(diff)/np.abs(olds[np.unravel_index(np.argmax(diff), diff.shape)])
+        MRC.append(tol)
+        error.append(np.max(np.abs(SI_r-SI/plank_Ishape)))
         print('Actual tolerance is :',tol*100,'%')
         if( tol < pm.tolerance ):
             print('-------------- FINISHED!!---------------')
@@ -215,15 +216,20 @@ if __name__ == "__main__":
     plt.imshow((SQ)[:,n,:], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
     plt.imshow((Jm00_shape/plank_Ishape)[:,n,:], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
     plt.imshow((Jm02_shape/plank_Ishape)[:,n,:], origin='lower', aspect='equal'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-
-
+    
     plt.plot(zz,(II/plank_Ishape)[:,n,-1], 'k', label=r'$I/B_{\nu}$')
     plt.plot(zz,(QQ)[:,n,-1], 'g', label=r'$Q/I$')
     plt.plot(zz,(SI/plank_Ishape)[:,n,-1], 'k--', label = r'$S_I/B_{\nu}$')
     plt.plot(zz,(SQ/SI)[:,n,-1], 'g--', label = r'$S_Q/S_I$')
     plt.plot(zz,(Jm00_shape/plank_Ishape)[:,n,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
     plt.plot(zz,(Jm02_shape/plank_Ishape)[:,n,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
+    plt.plot(zz,(SI_r)[:,n,-1], 'pink', label = 'Analitic solution')
     plt.legend()
+    plt.show()
+
+    plt.plot(np.log10(error))
+    plt.plot(np.log10(MRC))
+    plt.xscale('log')
     plt.show()
 
     # tolerancia en todas las capas en SO0, S02
