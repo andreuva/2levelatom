@@ -15,16 +15,16 @@ const float kb = 1.380649e-23;                /* # J/K */
 const float R = 8.31446261815324;            /* # J/K/mol */
 
 /*  DEFINE THE PROBLEM PARAMETERS                */
-const float zl = - log(1e3);                    /* optical thicknes of the lower boundary */
-const float zu = - log(1e-3);                   /* optical thicknes of the upper boundary */
-const short nz = 25;                      /* # number of points in the z axes */
+const float zl = -15; /*-log(1e3);                    /* optical thicknes of the lower boundary */
+const float zu = 8; /*-log(1e-3);                   /* optical thicknes of the upper boundary */
+const short nz = 24;                      /* # number of points in the z axes */
 
 const float wl = c/(502e-9);                /* # lower/upper frequency limit (lambda in nm) */
 const float wu = c/(498e-9);
 const float w0 = c/(500e-9);                /* wavelength of the transition (nm --> hz) */
 const short nw = 10;                        /* # points to sample the spectrum */
 
-const short qnd = 2;                   /* # nodes in the gaussian quadrature (# dirs) */
+const short qnd = 2;                   /* # nodes in the gaussian quadrature (# dirs) (odd) */
 
 const int T = 5778;                    /* # T (isotermic) of the medium */
 
@@ -87,7 +87,7 @@ double complex voigt(double v, double a){
 
 double plank_wien(double nu, int T){
     /*  Return the Wien aproximation to the plank function */
-    return (2*h*pow(nu,3))/(pow(c,2)) * exp( -h*nu/(kb*T) );
+    return (2*h*nu*nu*nu)/(c*c) * exp( -h*nu/(kb*T) );
 }
 
 /* -------------------------------------------------------------------*/
@@ -122,12 +122,11 @@ int main() {
 
     double zz[nz], taus[nz];               /* compute the 1D grid in z */
     double ww[nw], wnorm[nw], phy[nw], plank[nw], norm=0;
-    /* double mus[qnd];*/
+    double mus[qnd];
     double wa = w0*(sqrt(2*R*T/1e-3))/c;
     
-    double psim,psio,psip, U0,U1,U2, deltaum, deltaup;
-    
-    double mrc;
+    double psim,psio,psip, U0,U1,U2, deltaum, deltaup, I1, I2;
+    double mrc, diff;
 
     /* double II[nz][nw][qnd],QQ[nz][nw][qnd],SI[nz][nw][qnd],SQ[nz][nw][qnd];
     /* compute the 1D grid in z, the Voigt profile and the normalization */
@@ -144,10 +143,9 @@ int main() {
         phy[j] = creal(voigt(wnorm[j],a));
     }
 
-    /*for(i=0; i<qnd; i++){
-        mus[i] = -1 + i*2/(qnd-1);
-    }*/
-    double mus[] = {-1/sqrt(3), 1/sqrt(3)};
+    for(i=0; i<qnd; i++){
+        mus[i] = -1 + i*2./(qnd-1);
+    }
 
     for (i=0; i<nz; i++){
         for (j = 0; j < nw; j++){
@@ -174,12 +172,12 @@ int main() {
                 
                 for (i = 1; i < nz-1; i++){           /* loop for all the z's*/
 
-                    deltaum = fabs(exp(-zz[i])/mus[j] - exp(-zz[i-1])/mus[j]);
-                    deltaup = fabs(exp(-zz[i+1])/mus[j] - exp(-zz[i])/mus[j]);
+                    deltaum = fabs(exp(-zz[i]) - exp(-zz[i-1]));
+                    deltaup = fabs(exp(-zz[i+1]) - exp(-zz[i]));
 
                     U0 = 1 - exp(-deltaum);
                     U1 = deltaum - U0;
-                    U2 = pow(deltaum,2) - 2*U1;
+                    U2 = deltaum*deltaum - 2*U1;
 
                     psim = U0 + (U2 - U1*(deltaup + 2*deltaum))/(deltaum*(deltaum + deltaup));
                     psio = (U1*(deltaum + deltaup) - U2)/(deltaum*deltaup);
@@ -213,12 +211,10 @@ int main() {
 
                     deltaum = fabs(exp(-zz[i])/mus[j] - exp(-zz[i+1])/mus[j]);
                     deltaup = fabs(exp(-zz[i-1])/mus[j] - exp(-zz[i])/mus[j]);
-                    printf("%1.3e  %1.3e \n",exp(-zz[i-1])/mus[j], exp(-zz[i])/mus[j]);
-
 
                     U0 = 1 - exp(-deltaum);
                     U1 = deltaum - U0;
-                    U2 = pow(deltaum,2) - 2*U1;
+                    U2 = deltaum*deltaum - 2*U1;
 
                     psim = U0 + (U2 - U1*(deltaup + 2*deltaum))/(deltaum*(deltaum + deltaup));
                     psio = (U1*(deltaum + deltaup) - U2)/(deltaum*deltaup);
@@ -251,10 +247,17 @@ int main() {
         /* -------------------------------------------------------------------*/
         for (i = 0; i < nz; i++){
             for (j = 0; j < nw; j++){
-                Jm00[i][j] = 1/2 * (II_new[i][j][0] + II_new[i][j][1]);
-                Jm02[i][j] = 1/(4*sqrt(2)) * ((3*mus[0]*mus[0] - 1)*II_new[i][j][0] + 3*(mus[0]*mus[0] - 1)*QQ_new[i][j][0]) \
-                + (3*mus[1]*mus[1] - 1)*II_new[i][j][1] + 3*(mus[1]*mus[1] - 1)*QQ_new[i][j][1];
-
+                I1 = 0;
+                I2 = 0;
+                for (k = 1; k < qnd; k++){
+                    I1 += (II_new[i][j][k-1] + II_new[i][j][k])*(mus[k]-mus[k-1])/2.;
+                    I2 += (((3*mus[k-1]*mus[k-1] - 1)*II_new[i][j][k-1] + 3*(mus[k-1]*mus[k-1] - 1)*QQ_new[i][j][k-1]) \
+                    + ((3*mus[k]*mus[k] - 1)*II_new[i][j][k] + 3*(mus[k]*mus[k] - 1)*QQ_new[i][j][k]) )\
+                    * (mus[k]-mus[k-1])/2.;
+                }
+                
+                Jm00[i][j] = 1/2 * I1;
+                Jm02[i][j] = 1/(4*sqrt(2)) * I2;
             }
         }
         
@@ -274,13 +277,11 @@ int main() {
         for (i = 0; i < nz; i++){
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                mrc = fabs(fmax(mrc,fabs(SI[i][j][k] - SI_new[i][j][k]))/SI[i][j][k]);
-                
-                /*mrc = fmax(mrc,fabs(II[i][j][k] - II_new[i][j][k]))/II[i][j][k];
-                mrc = fmax(mrc,fabs(SQ[i][j][k] - SQ_new[i][j][k]))/SQ[i][j][k];
-                mrc = fmax(mrc,fabs(QQ[i][j][k] - QQ_new[i][j][k]))/QQ[i][j][k];*/
+                    diff = fabs((SI[i][j][k] - SI_new[i][j][k])/SI_new[i][j][k]);
+                    if (diff > mrc){
+                        mrc = diff;
+                    }
                 }
-                return 0;
             }
         }
         

@@ -137,7 +137,6 @@ if __name__ == "__main__":
     QQ = np.zeros_like(II)
     QQ_new = np.zeros_like(II)
 
-
     S00 = np.copy(plank_Ishape)
     SLI = np.copy(plank_Ishape)
     SLQ = np.zeros_like(plank_Ishape)
