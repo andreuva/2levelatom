@@ -8,7 +8,7 @@ import numpy as np
 # Define the grid points in the z direction (with Xi = exp(-z))
 zl = -15
 zu = 8
-dz = .1
+dz = .25
 
 nz = int((zu-zl)/dz)
 zz = np.arange(zl,zu+dz,dz)
