@@ -24,7 +24,13 @@ if pm.qnd%2 != 0:
     print(f'from {pm.qnd}',end=' ')
     pm.qnd += 1
     print(f'to {pm.qnd}')
-    
+
+if pm.qnd < 50:
+    print('To few ray directions, changing', end=' ')
+    print(f'from {pm.qnd}',end=' ')
+    pm.qnd = 60
+    print(f'to {pm.qnd}')
+
 mus = np.linspace(-1, 1, pm.qnd) 
 # mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
 tau = np.exp(-zz)
@@ -50,7 +56,8 @@ error = []
 mrc = []
 
 #  ------------------- FUNCTIONS FOR THE SOLVE METHOD --------------------------
-# Function to compute the coeficients of the Short Characteristics method
+
+
 def psi_calc(deltaum, deltaup, mode='quadratic'):
     """
     Compute of the psi coefficients in the SC method
@@ -71,6 +78,7 @@ def psi_calc(deltaum, deltaup, mode='quadratic'):
         return psim, psio
     else:
         raise Exception(f'mode should be quadratic or lineal but {mode} was introduced')
+
 
 def RTE_SC_solve(I,Q,SI,SQ,tau,mu):
     """

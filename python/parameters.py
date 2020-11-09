@@ -8,15 +8,15 @@ T = 5778                            # T (isotermic) of the medium
 
 zl = -15 #-np.log(1e7)                    # lower boundary optically thick
 zu = 8 #-np.log(1e-3)                   # upper boundary optically thin
-dz = 1                    # stepsize
+dz = .5                    # stepsize
 
 wl = cte.c/(502e-9)               # lower/upper frequency limit
 wu = cte.c/(498e-9)
 w0 = cte.c/(500e-9)
 wa = w0*(np.sqrt(2*cte.R*T/1e-3))/cte.c          # normalization of the frec. for the Voigt
-dw = (wu-wl)/50                    # points to sample the spectrum
+dw = (wu-wl)/100                    # points to sample the spectrum
 
-qnd = 100                            # nodes in the gaussian quadrature (# dirs) (odd number)
+qnd = 2                            # nodes in the gaussian quadrature (# dirs) (odd number)
 
 a = 1                               # dumping Voigt profile a=gam/(2^1/2*sig)
 r = 0.001                               # line strength XCI/XLI
@@ -28,5 +28,6 @@ jl = 0
 
 tolerance = 1e-6 #0.5e-3                         # Tolerance for finding the solution
 max_iter = 5000                            # maximum number of iterations to find the solution
+initial_plots = True
 plots = True
-nn = 3
+nn = int((wu-wl)/dw /2)
