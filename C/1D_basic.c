@@ -17,14 +17,14 @@ const float R = 8.31446261815324;            /* # J/K/mol */
 /*  DEFINE THE PROBLEM PARAMETERS                */
 const float zl = -15; /*-log(1e3);                    /* optical thicknes of the lower boundary */
 const float zu = 8; /*-log(1e-3);                   /* optical thicknes of the upper boundary */
-const short nz = 24;                      /* # number of points in the z axes */
 
 const float eps = 1e-4;                  /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
 
 const float tolerance = 1e-6;           /* # Tolerance for finding the solution */
-const int max_iter = 500;              /* maximum number of iterations */
+const int max_iter = 5000;              /* maximum number of iterations */
 
-const float dz = (zu-zl)/(nz-1);
+const float dz = .1 /*(zu-zl)/(nz-1)*/;    /* resolution in the z axis*/
+const short nz = (zu-zl)/dz;                      /* # number of points in the z axes */
 
 void psicalc( double *psim, double *psio, double *psip, double deltaum, double deltaup, int mode){
     
@@ -57,21 +57,19 @@ int main() {
     fprintf(stdout, "Tolerance for finding the solution:                %f º/. \n", tolerance*100);
     fprintf(stdout, "------------------------------------------------------------------\n\n");
 
-    int i,itt;               /* define the integers to count the loops*/
+    int i,itt;
 
-    double I_up[nz], I_down[nz], J[nz];
+    double I_up[nz], I_down[nz], J[nz];  
     double lambda_up[nz], lambda_down[nz], lambda_integ[nz];
-    double SI[nz], SI_new[nz];
+    double SI[nz], SI_new[nz], SI_analitic[nz];
 
     double zz[nz], tau[nz];
     
     double psim,psio,psip, psip_prev, deltaum, deltaup;
     double change, mrc;
+    double mu_up = 1/sqrt(3), mu_down = -1/sqrt(3);
 
-    /* double II[nz][nw][qnd],QQ[nz][nw][qnd],SI[nz][nw][qnd],SQ[nz][nw][qnd];
-    /* compute the 1D grid in z, the Voigt profile and the normalization */
-
-
+    /* Initialice the variables and put boundary conditions*/
     for(i=0; i<nz; i++){
         zz[i] = zl + i*dz;
         tau[i] = exp(-zz[i]);
@@ -82,9 +80,9 @@ int main() {
         lambda_integ[i] = 0;
         I_up[i] = 0;                    
         I_down[i] = 0;
+        SI_analitic[i] = (1-eps)*(1-exp(-tau[i]*sqrt(3*eps))/(1+sqrt(eps))) + eps;
     }
     I_up[0] = 1;
-
     /* -------------------------------------------------------------------*/
     /* ---------------------------- MAIN LOOP ----------------------------*/
     /* -------------------------------------------------------------------*/
@@ -96,10 +94,10 @@ int main() {
         /*------------------------- SOLVE FOR THE UPWARD RAYS ----------------*/
         psip_prev = 0;  
         for (i = 1; i < nz; i++){
-            deltaum = tau[i-1] - tau[i];
+            deltaum = (tau[i-1] - tau[i])/mu_up;
             
             if (i < nz-1){
-                deltaup = tau[i] - tau[i+1];
+                deltaup = (tau[i] - tau[i+1])/mu_up;
                 psicalc(&psim, &psio, &psip, deltaum, deltaup, 2);
                 
                 I_up[i] = I_up[i-1]*exp(-deltaum) + psim*SI[i-1] + psio*SI[i] + psip*SI[i+1];
@@ -116,10 +114,10 @@ int main() {
         /*-------------------- REPEAT FOR THE DOWNWARD RAYS ----------------*/
         psip_prev = 0;  
         for (i = nz-2; i >= 0; i--){
-            deltaum = tau[i] - tau[i+1];
+            deltaum = -(tau[i] - tau[i+1])/mu_down;
             
             if (i > 0){
-                deltaup = tau[i-1] - tau[i];
+                deltaup = -(tau[i-1] - tau[i])/mu_down;
                 psicalc(&psim, &psio, &psip, deltaum, deltaup, 2);
                 
                 I_down[i] = I_down[i+1]*exp(-deltaum) + psim*SI[i+1] + psio*SI[i] + psip*SI[i-1];
@@ -142,9 +140,8 @@ int main() {
             lambda_integ[i] = 1./2. * (lambda_down[i] + lambda_up[i]);
             SI_new[i] = (1-eps)*J[i] + eps;
             SI_new[i] = (SI_new[i] - SI[i])/(1 - (1-eps)*lambda_integ[i]) + SI[i];
-            fprintf(stdout,"#: %d ---- lambda = %1.15e \n", i+1, SI_new[i]);
         }
-        break;
+
         /* -------------------------------------------------------------------*/
         /* ------------------- COMPUTE THE DIFFERENCES -----------------------*/
         /* -------------------------------------------------------------------*/
@@ -156,11 +153,19 @@ int main() {
             }
             SI[i] = SI_new[i];
         }
-        fprintf(stdout,"ACTUAL MRC: %1.2e \n", mrc);
-
+        /*fprintf(stdout,"ACTUAL MRC: %1.2e \n", mrc);*/
         if ( mrc < tolerance ){
-            fprintf(stdout,"CONVERGENCE OBTAINED IN %d ITERATIONS WITH AN ERROR OF %1.3e \n", itt, mrc);
-            break;
+        break;
         }
     }
+    if ( mrc < tolerance ){
+        fprintf(stdout,"CONVERGENCE OBTAINED IN %d ITERATIONS\
+         WITH AN ERROR OF %1.3e \n", itt, mrc);
+    }
+    else{
+        fprintf(stdout,"CONVERGENCE NOT OBTAINED TO THE DESIRE DEGREE \
+        AFTER %d ITERATIONS. ERROR OF %1.3e \n", itt, mrc);
+    }
+
+    return 0;
 }

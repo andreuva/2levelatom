@@ -27,6 +27,4 @@ ju = 1
 jl = 0
 
 tolerance = 1e-6 #0.5e-3                         # Tolerance for finding the solution
-max_iter = 2000                            # maximum number of iterations to find the solution
-
-
+max_iter = 5000                            # maximum number of iterations to find the solution

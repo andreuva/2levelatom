@@ -5,33 +5,49 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-max_iter = 1e5
-tolerance = 1e-8
-
+# Define the grid points in the z direction (with Xi = exp(-z))
 zl = -15
 zu = 8
-dz = 1
+dz = .1
 
 nz = int((zu-zl)/dz)
 zz = np.arange(zl,zu+dz,dz)
 
+#Define the maximum tolerance and the maximum iterations posible
+max_iter = 5000
+tolerance = 1e-6
+
+# Phot. dest. probability (LTE=1,NLTE=1e-4)
 eps = 1e-4
 
-mu_up = 1
-mu_down = -1
+# Define the 2 directions of the gaussian cuadrature (qnd=2 up and down)
+mu_up = 1/np.sqrt(3)
+mu_down = -1/np.sqrt(3)
 
+# Define the source function as LTE (SI = 1)
 SI = np.ones((len(zz)))
+
+# Put the intensities at 0 and define the boundary conditions 
+# I_up[0] = 1 I_down[-1] = 0
 II_up = np.zeros((len(zz)))
 II_down = np.zeros((len(zz)))
 II_up[0] = 1
 
-II_new_up = II_up.copy()
-II_new_down = II_down.copy()
+#define the new intensities as a copy of the previous
 SI_new = SI.copy()
 
+# compute the tau and define the initial lambda functions (0)
 tau = np.exp(-zz)
 lmb_up = np.zeros_like(II_up)
 lmb_down = np.zeros_like(II_down)
+
+# Compute the analitic solution
+SI_analitic = (1-eps)*(1-np.exp(-tau*np.sqrt(3*eps))/(1+np.sqrt(eps))) + eps
+
+# initialice the vectors to hold the MRC and the absolute error in each iteration
+mrc = []
+error = []
+
 
 def psicalc(deltaum, deltaup, mode=1):
     """
@@ -53,19 +69,17 @@ def psicalc(deltaum, deltaup, mode=1):
         return psim, psio, psip
 
 
-def RT_1D(I_u, I_d, SI, l_u, l_d, tau):
-    I_up = I_u.copy()
-    I_down = I_d.copy()
-    lmb_up = l_d.copy()
-    lmb_down = l_u.copy()
+def RT_1D(I_up, I_down, SI, l_u, l_d, tau, mu_u, mu_d):
+    """
+    Compute the new intensities form the source function with the SC method
+    """
 
     psip_prev = 0
     for i in range(1,len(tau)):
-        deltaum = (tau[i-1] - tau[i])
+        deltaum = np.abs((tau[i-1] - tau[i])/mu_u)
 
         if (i < (len(tau)-1)):
-            deltaup = (tau[i] - tau[i+1])
-
+            deltaup = np.abs((tau[i] - tau[i+1])/mu_u)
             psim, psio, psip = psicalc(deltaum, deltaup, mode = 2)
             I_up[i] = I_up[i-1]*np.exp(-deltaum) + psim*SI[i-1] + psio*SI[i] + psip*SI[i+1]
             lmb_up[i] = psip_prev*np.exp(-deltaum) + psio
@@ -77,10 +91,10 @@ def RT_1D(I_u, I_d, SI, l_u, l_d, tau):
 
     psip_prev = 0
     for i in range(len(tau)-2,-1,-1):
-        deltaum = (tau[i] - tau[i+1])
+        deltaum = np.abs((tau[i] - tau[i+1])/mu_d)
 
         if (i > 0):
-            deltaup = (tau[i-1] - tau[i])
+            deltaup = np.abs((tau[i-1] - tau[i])/mu_d)
 
             psim, psio, psip = psicalc(deltaum, deltaup, mode = 2)
             I_down[i] = I_down[i+1]*np.exp(-deltaum) + psim*SI[i+1] + psio*SI[i] + psip*SI[i-1]
@@ -93,42 +107,50 @@ def RT_1D(I_u, I_d, SI, l_u, l_d, tau):
 
     return I_up, I_down, lmb_up, lmb_down
 
-tol = 1
-mrc = []
-error = []
-it = 0
-
-SI_analitic = (1-eps)*(1-np.exp(-tau*np.sqrt(3*eps))/(1+np.sqrt(eps))) + eps
-
-lmb_integ = 0
+# --------------------------------------------------------------------------------- #
+# ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ------------------------- #
+# --------------------------------------------------------------------------------- #
+it = 1; tol = 1
 while(it < max_iter and tol > tolerance):
     
-    II_new_up, II_new_down, lmb_up, lmb_down = RT_1D(II_up, II_down, SI, lmb_up, lmb_down, tau)
-    J = 1/2 * (II_new_up + II_new_down)
+    # Compute the new II and lambda
+    II_up, II_down, lmb_up, lmb_down = RT_1D(II_up, II_down, SI, lmb_up, lmb_down, tau, mu_up, mu_down)
+    # Compute the J and lambda integrating both directions
+    J = 1/2 * (II_up + II_down)
     lmb_integ = 1/2 * (lmb_up + lmb_down)
-    SI_new = (1-eps)*J + eps
 
+    # Compute the new source function with the integrated quantities
+    SI_new = (1-eps)*J + eps
     SI_new = (SI_new - SI)/(1 - (1-eps)*lmb_integ) + SI
 
+    # Compute the MRC and the error and storing it
     tol = np.max(np.abs(np.abs(SI - SI_new)/(SI+1e-200)))
     err = np.max(np.abs(SI-SI_analitic))
-
     mrc.append(tol)
     error.append(err)
-    II_down = II_new_down.copy()
-    II_up = II_new_up.copy()
+
+    # Copying the SI to the old vector and counting the iterations
     SI = SI_new.copy()
     it = it + 1
 
-print(it)
-plt.plot(SI_analitic, label = 'analitic solution')
-plt.plot(SI, label='found solution')
-plt.plot(II_down, label = 'I down')
-plt.plot(II_up, label = 'I up')
+
+# PLOT THE SOLUTIONS AND THE ERRORS
+
+print(f'Desired tolerance was {tolerance} with a maximum iterations: {max_iter}')
+print(f'Finished after {it} iterations with a tolerance of: {tol}')
+plt.title('Solution of the atmosphere with 2 directions')
+plt.xlabel('zz'); plt.ylabel(r'$I/B_{\nu}$')
+plt.plot(zz,II_down, 'b--', label = '$I_{down}$')
+plt.plot(zz,II_up, 'r--', label = '$I_{up}$')
+plt.plot(zz,SI, 'k', label='$S_I$ solution')
+plt.plot(zz,SI_analitic, 'pink', label = '$S_I$ analitic')
 plt.legend()
 plt.show()
 
-plt.plot(np.log10(error))
-plt.plot(np.log10(mrc))
+plt.title('MCR & ERROR')
+plt.xlabel('itt'); plt.ylabel(r'$log_{10}(MRC)$ & $log_{10}(error)$')
+plt.plot(np.log10(error), 'b--', label = 'error (SI-SI_analitic)')
+plt.plot(np.log10(mrc), 'b-',label='MRC')
 plt.xscale('log')
+plt.legend()
 plt.show()
