@@ -25,8 +25,8 @@ if pm.qnd%2 != 0:
     pm.qnd += 1
     print(f'to {pm.qnd}')
     
-''' mus = np.linspace(-1, 1, pm.qnd) '''
-mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
+mus = np.linspace(-1, 1, pm.qnd) 
+# mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
 tau = np.exp(-zz)
 
 # Initialaice the basic grid and auxiliar tensors
@@ -135,10 +135,13 @@ for itt in tqdm(range(1,pm.max_iter+1)):
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     # print('computing the components of the radiative tensor')
-    Jm00 = 1/2 * (II[:,:,0] + II[:,:,1])
-    Jm02 = ( 3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
+    '''Jm00 = 1/2 * (II[:,:,0] + II[:,:,1])
+    Jm02 = (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
     Jm02 = 1/np.sqrt(4**2 * 2)  * (Jm02[:,:,0] + Jm02[:,:,1])
-    lamb_st = 1/2 * (lamb_st[:,:,0] + lamb_st[:,:,1])
+    lamb_st = 1/2 * (lamb_st[:,:,0] + lamb_st[:,:,1])'''
+    Jm00 = 1./2. * integ.simps(II, mus)
+    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ , mus)
+    lamb_st = 1./2. * integ.simps(lamb_st, mus)
 
     # computing lambda, Jm00 and Jm02 with tensor shape as the rest of the variables
     Jm00_shape = np.repeat(Jm00[ :, :, np.newaxis], len(mus), axis=2)
@@ -147,7 +150,6 @@ for itt in tqdm(range(1,pm.max_iter+1)):
 
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
     # print('Computing the source function to close the loop and solve the ETR again')
-
     SI_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     SQ_new = (1-pm.eps)*Jm02_shape
 
@@ -176,36 +178,25 @@ if (itt >= pm.max_iter - 1):
 
 # Plotting if necesary
 if pm.plots:
-    plt.plot(zz, (II/plank_Ishape)[:, pm.nn, -1], 'b', label='$I$')
-    plt.plot(zz, (QQ/plank_Ishape)[:, pm.nn, -1], 'r--', label='$Q$')
-    plt.legend(); plt.xlabel('z')
+    plt.imshow((II)[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
+    plt.imshow((QQ)[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
+    plt.imshow((SI)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    plt.imshow((SQ)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+
+    plt.plot(zz,(II/plank_Ishape)[:,pm.nn,0], 'k--', label=r'$I/B_{\nu}$ upward')
+    plt.plot(zz,(II/plank_Ishape)[:,pm.nn, -1], 'k:', label=r'$I/B_{\nu}$ downward')
+    plt.plot(zz,(QQ/II)[:,pm.nn,-1], 'g', label=r'$Q/I$')
+    plt.plot(zz,(SI_new/plank_Ishape)[:,pm.nn,-1], 'r--', label = r'$S_I/B_{\nu}$')
+    plt.plot(zz,(SQ/SI)[:,pm.nn,-1], 'g--', label = r'$S_Q/S_I$')
+    # plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
+    # plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
+    plt.plot(zz,(SI_analitic)[:,pm.nn,-1], 'pink', label = 'Analitic solution')
+    plt.legend()
     plt.show()
-    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'b--', label=r'$J^0_0/B_\nu$')
-    plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'r-.', label=r'$J^2_0/B_\nu$')
-    plt.legend(); plt.show()
-    plt.plot(mus,(Jm00_shape/plank_Ishape)[1,pm.nn,:], 'b--', label=r'$J^0_0/B_\nu$')
-    plt.plot(mus,(Jm02_shape/plank_Ishape)[1,pm.nn,:], 'r-.', label=r'$J^2_0/B_\nu$')
-    plt.legend(); plt.show()
 
-plt.imshow((II)[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
-plt.imshow((QQ)[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
-plt.imshow((SI)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-plt.imshow((SQ)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel('$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-
-plt.plot(zz,(II/plank_Ishape)[:,pm.nn,0], 'k--', label=r'$I/B_{\nu}$ upward')
-plt.plot(zz,(II/plank_Ishape)[:,pm.nn, -1], 'k:', label=r'$I/B_{\nu}$ downward')
-plt.plot(zz,(QQ)[:,pm.nn,-1], 'g', label=r'$Q/I$')
-plt.plot(zz,(SI_new/plank_Ishape)[:,pm.nn,-1], 'r--', label = r'$S_I/B_{\nu}$')
-plt.plot(zz,(SQ/SI)[:,pm.nn,-1], 'g--', label = r'$S_Q/S_I$')
-# plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
-# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
-plt.plot(zz,(SI_analitic)[:,pm.nn,-1], 'pink', label = 'Analitic solution')
-plt.legend()
-plt.show()
-
-plt.plot(np.log10(error),'--', label=f'Si - Si(sol) dz={pm.dz}')
-plt.plot(np.log10(mrc), label=f'MRC dz={pm.dz}')
-plt.xscale('log')
-plt.show()
+    plt.plot(np.log10(error),'--', label=f'Si - Si(sol) dz={pm.dz}')
+    plt.plot(np.log10(mrc), label=f'MRC dz={pm.dz}')
+    plt.xscale('log')
+    plt.show()
