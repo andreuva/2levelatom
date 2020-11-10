@@ -15,7 +15,7 @@ jsymbols = jsymbols()
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
 # plane-parallel atmosfere and axial-simetry)
-zz = np.arange(pm.zl, pm.zu, pm.dz)          # compute the 1D grid
+zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 
 # Define the grid in frequencies ( or wavelengths )
 ww = np.arange(pm.wl, pm.wu, pm.dw)          # Compute the 1D spectral grid
@@ -47,12 +47,42 @@ phy = phy/integ.simps(phy, wnorm)          # normalice phy to sum 1
 
 # Initialaice the intensities vectors to solve the ETR
 # Computed as a tensor in zz, ww, mus
-plank_Ishape = np.repeat(np.repeat(func.plank_wien(ww, pm.T)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+plank_Ishape = np.repeat(np.repeat(np.ones_like(ww)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(ww), axis=0)[np.newaxis, :, :], len(zz), axis=0)
 phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 ww_shape = np.repeat(np.repeat(ww[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(ww), axis=1)[:, :, np.newaxis], len(mus), axis=2)
 tau_shape = np.exp(-zz_shape)
+
+# Compute the source function as a tensor in of zz, ww, mus
+# Initialaice the used tensors
+II = plank_Ishape.copy()
+II[1:] = II[1:]*0
+QQ = np.zeros_like(II)
+
+S00 = plank_Ishape.copy()*pm.eps
+SLI = S00.copy()
+SLQ = np.zeros_like(II)
+SQ = np.zeros_like(II)
+# SI = plank_Ishape.copy()
+SI = phy_shape/(phy_shape + pm.r/tau_shape)*SLI + pm.r/tau_shape/(phy_shape + pm.r/tau_shape)*plank_Ishape
+
+if pm.initial_plots:
+    plt.plot(ww, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
+    plt.plot(ww, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
+    plt.plot(ww, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
+    plt.plot(ww, (SLI//plank_Ishape)[5,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
+    plt.xlabel(r'$\nu\ (Hz)$')
+    plt.legend()
+    plt.show()
+    plt.plot(ww, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
+    plt.plot(ww, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
+    plt.plot(ww, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
+    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
+    plt.legend()
+    plt.show()
+
+w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
 
 #  ------------------- FUNCTIONS FOR THE SOLVE METHOD --------------------------
 
@@ -131,37 +161,7 @@ def RTE_SC_solve(I, Q, SI, SQ, tau, mu):
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
-
-# Compute the source function as a tensor in of zz, ww, mus
-# Initialaice the used tensors
-II = np.copy(plank_Ishape)
-II[1:] = II[1:]*0
-QQ = np.zeros_like(II)
-
-S00 = plank_Ishape.copy()*pm.eps
-SLI = S00.copy()
-SLQ = np.zeros_like(II)
-SQ = np.zeros_like(II)
-SI = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
-
-if pm.initial_plots:
-    plt.plot(ww, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
-    plt.plot(ww, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
-    plt.plot(ww, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
-    plt.plot(ww, (SLI//plank_Ishape)[5,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
-    plt.xlabel(r'$\nu\ (Hz)$')
-    plt.legend()
-    plt.show()
-    plt.plot(ww, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
-    plt.plot(ww, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
-    plt.plot(ww, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
-    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
-    plt.legend()
-    plt.show()
-
-w2jujl = jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-
-for i in tqdm(range(pm.max_iter)):
+for itt in tqdm(range(1,pm.max_iter+1)):
 
     # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
     print('Solving the Radiative Transpor Equations')
@@ -174,14 +174,14 @@ for i in tqdm(range(pm.max_iter)):
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     print('computing the components of the radiative tensor')
 
-    Jm00 = integ.simps( phy_shape*II, mus)
-    Jm00 = 1/2 * integ.simps(Jm00, wnorm)
+    Jm00 = 1/2. * integ.simps( phy_shape*II, mus)
+    Jm00 =  integ.simps(Jm00, wnorm)
     Jm02 = phy_shape * (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
-    Jm02 = integ.simps( Jm02, mus )
-    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, wnorm)
-    lambd = integ.simps( lambd, mus)
-    lambd = 1/2. * integ.simps( lambd, wnorm)
-
+    Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, mus )
+    Jm02 =  integ.simps( Jm02, wnorm)
+    lambd = 1/2. * integ.simps( phy_shape*lambd, mus)
+    lambd = integ.simps( lambd, wnorm)
+    
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     lambd = np.repeat(np.repeat(lambd[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
@@ -190,7 +190,7 @@ for i in tqdm(range(pm.max_iter)):
     Jm00 = 1./2. * integ.simps(phy_shape*II, mus)
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy_shape * (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ , mus)
     lambd = 1./2. * integ.simps(lambd, mus)
-
+    
     # computing lambda, Jm00 and Jm02 with tensor shape as the rest of the variables
     Jm00_shape = np.repeat(Jm00[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(Jm02[ :, :, np.newaxis], len(mus), axis=2)
@@ -207,11 +207,14 @@ for i in tqdm(range(pm.max_iter)):
     SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
     SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 
-    SI_new = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
-    SQ_new = phy_shape/(phy_shape + pm.r)*SLQ
+    SI_new = phy_shape/(phy_shape + pm.r/tau_shape)*SLI + pm.r/tau_shape/(phy_shape + pm.r/tau_shape)*plank_Ishape
+    SQ_new = phy_shape/(phy_shape + pm.r/tau_shape)*SLQ
+
+    # SI_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
+    # SQ_new = (1-pm.eps)*Jm02_shape
 
     # Applying the lambda operator to accelerate the convergence
-    # SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lambd) + SI
+    SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lambd) + SI
 
     if pm.plots:
         plt.plot(ww, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
@@ -251,17 +254,17 @@ for i in tqdm(range(pm.max_iter)):
 
 
     print('Computing the differences and reasign the intensities')
-    olds = np.array([SI, SQ])
-    news = np.array([SI_new, SQ_new])
+    olds = np.array([SI])
+    news = np.array([SI_new])
     SI = SI_new.copy()
     SQ = SQ_new.copy()
     tol = np.max(np.abs(np.abs(olds - news)/(olds+1e-200)))
-    print('Actual tolerance is :',tol*100,'%')
+    print('Actual tolerance is :',tol)
     if( tol < pm.tolerance ):
         print('-------------- FINISHED!!---------------')
         break
 
-if (i >= pm.max_iter - 1):
+if (itt >= pm.max_iter - 1):
     print('Ops! The solution with the desired tolerance has not been found')
     print('Although an aproximate solution may have been found. Try to change')
     print('the parameters to obtain an optimal solution.')
