@@ -5,12 +5,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integ
-from tqdm import tqdm
+from tqdm import tqdm,trange
 # local imports of constants parameters and functions
 import constants as cte
 import parameters as pm
 import physical_functions as func
 from jsymbols import jsymbols
+# import gaussian_quadrature as gauss
 jsymbols = jsymbols()
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
@@ -34,6 +35,7 @@ if pm.qnd < 50:
     print(f'to {pm.qnd}')
     
 mus = np.linspace(-1, 1, pm.qnd) 
+# [weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd)
 # mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
 tau = np.exp(-zz)
 
@@ -64,8 +66,10 @@ S00 = plank_Ishape.copy()*pm.eps
 SLI = S00.copy()
 SLQ = np.zeros_like(II)
 SQ = np.zeros_like(II)
-# SI = plank_Ishape.copy()
-SI = phy_shape/(phy_shape + pm.r/tau_shape)*SLI + pm.r/tau_shape/(phy_shape + pm.r/tau_shape)*plank_Ishape
+SI = plank_Ishape.copy()
+# SI = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
+
+SI_analitic = (1-pm.eps)*(1-np.exp(-tau_shape*np.sqrt(3*pm.eps))/(1+np.sqrt(pm.eps))) + pm.eps*plank_Ishape
 
 if pm.initial_plots:
     plt.plot(ww, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
@@ -156,15 +160,15 @@ def RTE_SC_solve(I, Q, SI, SQ, tau, mu):
                     Q[i,:,j] = Q[i+1,:,j]*np.exp(-deltaum) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio
                     l_st[i,:,j] = psip_prev*np.exp(-deltaum) + psio
     
-    return I,Q, l_st
+    return I, Q, l_st
 
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
-for itt in tqdm(range(1,pm.max_iter+1)):
-
+t = trange(pm.max_iter, desc='Iterations:', leave=True)
+for itt in t:
     # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
-    print('Solving the Radiative Transpor Equations')
+    # print('Solving the Radiative Transpor Equations')
     II, QQ, lambd = RTE_SC_solve(II,QQ,SI,SQ,tau,mus)
     
     if np.min(II) < 0:
@@ -172,25 +176,25 @@ for itt in tqdm(range(1,pm.max_iter+1)):
         break
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
-    print('computing the components of the radiative tensor')
+    # print('computing the components of the radiative tensor')
 
-    Jm00 = 1/2. * integ.simps( phy_shape*II, mus)
-    Jm00 =  integ.simps(Jm00, wnorm)
-    Jm02 = phy_shape * (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
+    Jm00 = 1/2. * integ.simps( II, mus)
+    Jm00 =  integ.simps(phy_shape[:,:,0]*Jm00, wnorm)
+    Jm02 = (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( Jm02, mus )
-    Jm02 =  integ.simps( Jm02, wnorm)
-    lambd = 1/2. * integ.simps( phy_shape*lambd, mus)
-    lambd = integ.simps( lambd, wnorm)
-    
+    Jm02 =  integ.simps( phy_shape[:,:,0]*Jm02, wnorm)
+    lambd = 1/2. * integ.simps( lambd, mus)
+    lambd = integ.simps( phy_shape[:,:,0]*lambd, wnorm)
+
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     lambd = np.repeat(np.repeat(lambd[ :, np.newaxis], len(ww), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
-    
+
     '''
     Jm00 = 1./2. * integ.simps(phy_shape*II, mus)
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( phy_shape * (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ , mus)
     lambd = 1./2. * integ.simps(lambd, mus)
-    
+
     # computing lambda, Jm00 and Jm02 with tensor shape as the rest of the variables
     Jm00_shape = np.repeat(Jm00[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(Jm02[ :, :, np.newaxis], len(mus), axis=2)
@@ -198,7 +202,7 @@ for itt in tqdm(range(1,pm.max_iter+1)):
     '''
 
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
-    print('Computing the source function to close the loop and solve the ETR again')
+    # print('Computing the source function to close the loop and solve the ETR again')
     # computing Jm00 and Jm02 with tensor shape as the rest of the variables
 
     S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
@@ -207,59 +211,25 @@ for itt in tqdm(range(1,pm.max_iter+1)):
     SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
     SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 
-    SI_new = phy_shape/(phy_shape + pm.r/tau_shape)*SLI + pm.r/tau_shape/(phy_shape + pm.r/tau_shape)*plank_Ishape
-    SQ_new = phy_shape/(phy_shape + pm.r/tau_shape)*SLQ
+    SI_new = phy_shape/(phy_shape + pm.r)*SLI + pm.r/(phy_shape + pm.r)*plank_Ishape
+    SQ_new = phy_shape/(phy_shape + pm.r)*SLQ
 
     # SI_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     # SQ_new = (1-pm.eps)*Jm02_shape
 
     # Applying the lambda operator to accelerate the convergence
-    SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lambd) + SI
+    # SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lambd) + SI
 
-    if pm.plots:
-        plt.plot(ww, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
-        # plt.plot(ww, (QQ/plank_Ishape)[-1, :, -1], 'r', label='$Q$')
-        plt.plot(ww, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I$')
-        plt.plot(ww, (SI_new/plank_Ishape)[-1,:,-1], 'm--', label=r'$S_{I,new}$')            
-        plt.plot(ww, (SLI/plank_Ishape)[-1,:,-1], 'g', label=r'$S^L_I$')
-        # plt.plot(ww, (SQ/plank_Ishape)[-1,:,-1], 'k', label=r'$S_Q$')
-        # plt.plot(ww, (SQ_new/plank_Ishape)[-1,:,-1], 'k--', label=r'$S_{Q,new}$')
-        # plt.plot(ww, (SLQ/plank_Ishape)[-1,:,-1], 'k:', label=r'$S^L_Q$')
-        # plt.plot(ww, (SLQ_new/plank_Ishape)[-1,:,-1], 'k-.', label=r'$S^L_{Q,new}$')
-        plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-        plt.show()
-        plt.plot(zz, (II/plank_Ishape)[:, pm.nn, -1], 'b', label='$I$')
-        plt.plot(zz, (QQ/plank_Ishape)[:, pm.nn, -1], 'b--', label='$Q$')
-        plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'g', label=r'$J^0_0/B_\nu$ shape')
-        plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'g--', label=r'$J^2_0/B_\nu$ shape')
-        plt.legend(); plt.xlabel('z'); plt.show()
-        plt.plot(zz, (II/plank_Ishape)[:, pm.nn, 1], 'b', label='$I$')
-        plt.plot(zz, (QQ/plank_Ishape)[:, pm.nn, 1], 'b--', label='$Q$')
-        plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,1], 'g', label=r'$J^0_0/B_\nu$ shape')
-        plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,1], 'g--', label=r'$J^2_0/B_\nu$ shape')
-        plt.legend(); plt.xlabel('z'); plt.show()
-    if False:
-        # plt.imshow(II[:, :, m], origin='lower', aspect='auto'); plt.title('$I$'); plt.colorbar(); plt.show()
-        plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
-        # plt.imshow(QQ[:, :, 1], origin='lower', aspect='auto'); plt.title('$Q$'); plt.colorbar(); plt.show()
-        plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
-        # plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-        plt.imshow(SI_new[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_{I,new}$');plt.colorbar(); plt.show()
-        # plt.imshow(SQ[:,:,1], origin='lower', aspect='auto'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-        # plt.imshow(SLI[:,:,1], origin='lower', aspect='auto'); plt.title(r'$S^L_I$');plt.colorbar(); plt.show()
-        # plt.imshow(SLQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S^L_Q$');plt.colorbar(); plt.show()
-        # plt.imshow(S20[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S^2_0$');plt.colorbar(); plt.show()
-        plt.imshow((Jm00_shape/plank_Ishape)[:,:,1], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-        plt.imshow((Jm02_shape/plank_Ishape)[:,:,1], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-
-
-    print('Computing the differences and reasign the intensities')
+    # print('Computing the differences and reasign the intensities')
     olds = np.array([SI])
     news = np.array([SI_new])
     SI = SI_new.copy()
     SQ = SQ_new.copy()
     tol = np.max(np.abs(np.abs(olds - news)/(olds+1e-200)))
-    print('Actual tolerance is :',tol)
+    # print('Actual tolerance is :',tol)
+    t.set_description('Actual tolerance is : %1.3e' % tol)
+    t.refresh() # to show immediately the update
+
     if( tol < pm.tolerance ):
         print('-------------- FINISHED!!---------------')
         break
@@ -271,28 +241,33 @@ if (itt >= pm.max_iter - 1):
     print('The found tolerance is: ',tol*100, '%')
 
 
-plt.plot(ww, II[-1,:,-1]/plank_Ishape[-1,:,-1], color='k', label='I')
-plt.plot(ww, QQ[-1,:,-1]/plank_Ishape[-1,:,-1], color='g', label='Q')
-plt.plot(ww, SI[-1,:,-1]/plank_Ishape[-1,:,-1], color='b', label='SI')
-plt.plot(ww, SQ[-1,:,-1]/plank_Ishape[-1,:,-1], color='r', label='SQ')
-plt.legend()
+
+plt.plot(ww, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
+plt.plot(ww, (QQ/II)[-1, :, -1], 'r', label='$Q/I$')
+plt.plot(ww, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I/B_{\nu}$')
+plt.plot(ww, (SQ/SI)[-1,:,-1], 'k', label=r'$S_Q/S_I$')
+plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
 plt.show()
-plt.plot(zz,II[:,pm.nn,-1]/plank_Ishape[:,pm.nn,-1], 'k', label=r'$I/B_{\nu}$')
-plt.plot(zz,QQ[:,pm.nn,-1]/II[:,pm.nn,-1], 'g', label=r'$Q/I$')
-plt.plot(zz,SI[:,pm.nn,-1]/plank_Ishape[:,pm.nn,-1], 'k--', label = r'$S_I/B_{\nu}$')
-plt.plot(zz,SQ[:,pm.nn,-1]/SI[:,pm.nn,-1], 'g--', label = r'$S_Q/S_I$')
-plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
-plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
-plt.legend()
+plt.plot(zz, (II/plank_Ishape)[:, pm.nn, -1], 'r', label=r'$I(\mu=1)$')
+plt.plot(zz, (SI/plank_Ishape)[:, pm.nn, -1], 'k', label=r'$S_I(\mu=1)$')
+# plt.plot(zz, (QQ/II)[:, pm.nn, -1], 'b', label=r'$Q(\mu=1)$')
+plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'g', label=r'$J^0_0/B_\nu(\mu=1)$')
+# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'm', label=r'$J^2_0/B_\nu(\mu=1)$')
+plt.plot(zz, (II/plank_Ishape)[:, pm.nn, 0], 'r--', label=r'$I/B_{\nu}(\mu=-1)$')
+plt.plot(zz, (SI/plank_Ishape)[:, pm.nn, 0], 'k--', label=r'$S_I(\mu=-1)$')
+# plt.plot(zz, (QQ/II)[:, pm.nn, 0], 'b--', label=r'$Q/I(\mu=-1)$')
+plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,0], 'g--', label=r'$J^0_0/B_\nu(\mu=-1)$')
+# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,0], 'm--', label=r'$J^2_0/B_\nu(\mu=-1)$')
+plt.plot(zz,(SI_analitic)[:,pm.nn,-1], 'pink', label = 'Analitic solution')
+plt.legend(); plt.xlabel('z')
 plt.show()
-plt.plot(zz,(II/plank_Ishape)[:,pm.nn,1], 'k', label=r'$I/B_{\nu}$')
-plt.plot(zz,(QQ/II)[:,pm.nn,1], 'g', label=r'$Q/I$')
-plt.plot(zz,(SI/plank_Ishape)[:,pm.nn,1], 'k--', label = r'$S_I/B_{\nu}$')
-plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,1], 'r', label=r'$J^0_0/B_\nu$ shape')
-plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,1], 'r--', label=r'$J^2_0/B_\nu$ shape')
-plt.plot(zz,(SQ/SI)[:,pm.nn,1], 'g--', label = r'$S_Q/S_I$')
-plt.legend()
-plt.show()
+
+plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
 plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.title('$I$'); plt.colorbar(); plt.show()
 plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.title('$Q$'); plt.colorbar(); plt.show()
 plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.title('$S_I$');plt.colorbar(); plt.show()

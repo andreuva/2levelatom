@@ -32,7 +32,7 @@ if pm.qnd < 50:
     print(f'to {pm.qnd}')
 
 mus = np.linspace(-1, 1, pm.qnd) 
-# mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
+# mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)]); pm.qnd=2
 tau = np.exp(-zz)
 
 # Initialaice the basic grid and auxiliar tensors
@@ -126,7 +126,7 @@ def RTE_SC_solve(I,Q,SI,SQ,tau,mu):
                     Q[i,:,j] = Q[i+1,:,j]*np.exp(-deltaum) + SQ[i+1,:,j]*psim + SQ[i,:,j]*psio
                     l_st[i,:,j] = psip_prev*np.exp(-deltaum) + psio
     
-    return I,Q, l_st
+    return I, Q, l_st
 
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
@@ -143,10 +143,12 @@ for itt in tqdm(range(1,pm.max_iter+1)):
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
     # print('computing the components of the radiative tensor')
-    '''Jm00 = 1/2 * (II[:,:,0] + II[:,:,1])
+    '''
+    Jm00 = 1/2 * (II[:,:,0] + II[:,:,1])
     Jm02 = (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
     Jm02 = 1/np.sqrt(4**2 * 2)  * (Jm02[:,:,0] + Jm02[:,:,1])
-    lamb_st = 1/2 * (lamb_st[:,:,0] + lamb_st[:,:,1])'''
+    lamb_st = 1/2 * (lamb_st[:,:,0] + lamb_st[:,:,1])
+    '''
     Jm00 = 1./2. * integ.simps(II, mus)
     Jm02 = 1/np.sqrt(4**2 * 2) * integ.simps( (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ , mus)
     lamb_st = 1./2. * integ.simps(lamb_st, mus)
@@ -201,10 +203,20 @@ if pm.plots:
     # plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'r', label=r'$J^0_0/B_\nu$ shape')
     # plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'r--', label=r'$J^2_0/B_\nu$ shape')
     plt.plot(zz,(SI_analitic)[:,pm.nn,-1], 'pink', label = 'Analitic solution')
-    plt.legend()
+    plt.legend(); plt.xlabel('z'); plt.ylabel('Intensities')
     plt.show()
+
+    plt.plot(ww,plank_Ishape[0,:,0])
+    plt.xlabel(r'\nu (Hz)'); plt.ylabel('Intensity'); plt.show()
 
     plt.plot(np.log10(error),'--', label=f'Si - Si(sol) dz={pm.dz}')
     plt.plot(np.log10(mrc), label=f'MRC dz={pm.dz}')
-    plt.xscale('log')
+    plt.xscale('log'); plt.legend(); plt.xlabel('itterations'); plt.ylabel('log10(error)')
     plt.show()
+
+    plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
