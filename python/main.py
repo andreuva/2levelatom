@@ -11,7 +11,7 @@ import constants as cte
 import parameters as pm
 import physical_functions as func
 from jsymbols import jsymbols
-# import gaussian_quadrature as gauss
+import gaussian_quadrature as gauss
 jsymbols = jsymbols()
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
@@ -19,23 +19,30 @@ jsymbols = jsymbols()
 zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 
 # Define the grid in frequencies ( or wavelengths )
-ww = np.arange(pm.wl, pm.wu, pm.dw)          # Compute the 1D spectral grid
+if pm.w_normaliced:
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
+else:
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # Compute the 1D spectral grid
 
 # Define the directions of the rays
-if pm.qnd%2 != 0:
-    print('Changing the number of directions in the cuadrature', end=' ')
-    print(f'from {pm.qnd}',end=' ')
-    pm.qnd += 1
-    print(f'to {pm.qnd}')
+if pm.gaussian:
+    [weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd, pm.tolerance)
+    print( pm.qnd, weigths, mus)
+else:
+    if pm.qnd%2 != 0:
+        print('Changing the number of directions in the cuadrature', end=' ')
+        print(f'from {pm.qnd}',end=' ')
+        pm.qnd += 1
+        print(f'to {pm.qnd}')
 
-if pm.qnd < 50:
-    print('To few ray directions, changing', end=' ')
-    print(f'from {pm.qnd}',end=' ')
-    pm.qnd = 60
-    print(f'to {pm.qnd}')
-    
-mus = np.linspace(-1, 1, pm.qnd) 
-# [weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd)
+    if pm.qnd < 50:
+        print('To few ray directions, changing', end=' ')
+        print(f'from {pm.qnd}',end=' ')
+        pm.qnd = 60
+        print(f'to {pm.qnd}')
+        
+    mus = np.linspace(-1, 1, pm.qnd) 
+
 # mus = np.array([-1/np.sqrt(3) , 1/np.sqrt(3)])
 tau = np.exp(-zz)
 

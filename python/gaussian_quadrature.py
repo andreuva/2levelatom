@@ -29,7 +29,7 @@ def DLegendre(n, x):
 # Roots of the polynomial obtained using Newton-Raphson method
 
 
-def LegendreRoots(polyorder, tolerance=1e-10):
+def LegendreRoots(polyorder, tolerance=1e-20):
     if polyorder < 2:
         err = 1  # bad polyorder no roots can be found
     else:
@@ -57,9 +57,9 @@ def LegendreRoots(polyorder, tolerance=1e-10):
 # Weight coefficients
 
 
-def GaussLegendreWeights(polyorder):
+def GaussLegendreWeights(polyorder, tolerance=1e-20):
     W = []
-    [xis, err] = LegendreRoots(polyorder)
+    [xis, err] = LegendreRoots(polyorder, tolerance)
     if err == 0:
         W = 2.0/((1.0-xis**2)*(DLegendre(polyorder, xis)**2))
         err = 0
@@ -86,25 +86,24 @@ def GaussLegendreQuadrature(func, polyorder, a, b):
 ##################################################################
 # The integrand - change as required
 
+if __name__ == 'main':
+    
+    def func(x):
+        return exp(x)
+    ##################################################################
 
-def func(x):
-    return exp(x)
-##################################################################
-#
+    order = 8
+    [Ws, xs, err] = GaussLegendreWeights(order)
+    if err == 0:
+        print("Order    : ", order)
+        print("Roots    : ", xs)
+        print("Weights  : ", Ws)
+    else:
+        print("Roots/Weights evaluation failed")
 
-
-order = 20
-[Ws, xs, err] = GaussLegendreWeights(order)
-if err == 0:
-    print("Order    : ", order)
-    print("Roots    : ", xs)
-    print("Weights  : ", Ws)
-else:
-    print("Roots/Weights evaluation failed")
-
-# Integrating the function
-[ans, err] = GaussLegendreQuadrature(func, order, -3, 3)
-if err == 0:
-    print("Integral : ", ans)
-else:
-    print("Integral evaluation failed")
+    # Integrating the function
+    [ans, err] = GaussLegendreQuadrature(func, order, -3, 3)
+    if err == 0:
+        print("Integral : ", ans)
+    else:
+        print("Integral evaluation failed")
