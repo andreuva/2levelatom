@@ -59,7 +59,7 @@ mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(wnorm), axis=0)[np.newaxis
 phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 wnorm_shape = np.repeat(np.repeat(wnorm[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(wnorm), axis=1)[:, :, np.newaxis], len(mus), axis=2)
-tau_shape = np.exp(-zz_shape)*phy_shape
+tau_shape = np.exp(-zz_shape)*phy_shape #+ np.exp(-zz_shape)/pm.r
 
 
 w2jujl = 1 # jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
@@ -180,7 +180,7 @@ for itt in t:
     # print('Solving the Radiative Transpor Equations')
     II, QQ, lambd = RTE_SC_solve(II, QQ, SI, SQ, tau_shape[:,:,-1], mus)
     
-    if np.min(II) < -1e-6:
+    if np.min(II) < -1e5:
         print('found a negative intensity, stopping')
         break
 
@@ -196,7 +196,7 @@ for itt in t:
 
     lambd = 1/2. * np.sum(lambd*weigths_shape, axis=-1)
     lambd = integ.simps( phy_shape[:,:,0] * lambd, wnorm)
-
+    
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     lambd = np.repeat(np.repeat(lambd[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
@@ -245,29 +245,29 @@ plt.plot(wnorm, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I/B_{\nu}$')
 plt.plot(wnorm, (SQ/SI)[-1,:,-1], 'k', label=r'$S_Q/S_I$')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
 plt.show()
-plt.plot(zz, (II/plank_Ishape)[:, pm.nn, -1], 'r', label=r'$I(\mu=1)$')
-plt.plot(zz, (SI/plank_Ishape)[:, pm.nn, -1], 'k', label=r'$S_I(\mu=1)$')
-# plt.plot(zz, (QQ/II)[:, pm.nn, -1], 'b', label=r'$Q(\mu=1)$')
-plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,-1], 'g', label=r'$J^0_0/B_\nu(\mu=1)$')
-# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,-1], 'm', label=r'$J^2_0/B_\nu(\mu=1)$')
-plt.plot(zz, (II/plank_Ishape)[:, pm.nn, 0], 'r--', label=r'$I/B_{\nu}(\mu=-1)$')
-plt.plot(zz, (SI/plank_Ishape)[:, pm.nn, 0], 'k--', label=r'$S_I(\mu=-1)$')
-# plt.plot(zz, (QQ/II)[:, pm.nn, 0], 'b--', label=r'$Q/I(\mu=-1)$')
-plt.plot(zz,(Jm00_shape/plank_Ishape)[:,pm.nn,0], 'g--', label=r'$J^0_0/B_\nu(\mu=-1)$')
-# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,pm.nn,0], 'm--', label=r'$J^2_0/B_\nu(\mu=-1)$')
-plt.plot(zz,(SI_analitic)[:,pm.nn,-1], 'pink', label = 'Analitic solution')
+plt.plot(zz, (II/plank_Ishape)[:, 0, -1], 'r', label=r'$I(\mu=1)$')
+plt.plot(zz, (SI/plank_Ishape)[:, 0, -1], 'k', label=r'$S_I(\mu=1)$')
+# plt.plot(zz, (QQ/II)[:, 0, -1], 'b', label=r'$Q(\mu=1)$')
+plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,-1], 'g', label=r'$J^0_0/B_\nu(\mu=1)$')
+# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,0,-1], 'm', label=r'$J^2_0/B_\nu(\mu=1)$')
+plt.plot(zz, (II/plank_Ishape)[:, 0, 0], 'r--', label=r'$I/B_{\nu}(\mu=-1)$')
+plt.plot(zz, (SI/plank_Ishape)[:, 0, 0], 'k--', label=r'$S_I(\mu=-1)$')
+# plt.plot(zz, (QQ/II)[:, 0, 0], 'b--', label=r'$Q/I(\mu=-1)$')
+plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,0], 'g--', label=r'$J^0_0/B_\nu(\mu=-1)$')
+# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,0,0], 'm--', label=r'$J^2_0/B_\nu(\mu=-1)$')
+# plt.plot(zz,(SI_analitic)[:,0,-1], 'pink', label = 'Analitic solution')
 plt.legend(); plt.xlabel('z')
 plt.show()
 
 plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
 plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
-plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
 plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
 plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.title('$I$'); plt.colorbar(); plt.show()
-plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.title('$Q$'); plt.colorbar(); plt.show()
-plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.title('$S_I$');plt.colorbar(); plt.show()
-plt.imshow(SQ[:,pm.nn,:], origin='lower', aspect='auto'); plt.title('$S_Q$');plt.colorbar(); plt.show()
-plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
+plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
+plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_I$');plt.colorbar(); plt.show()
+plt.imshow(SQ[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_Q$');plt.colorbar(); plt.show()
+plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()

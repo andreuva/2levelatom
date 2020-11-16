@@ -4,12 +4,11 @@
 #############################################################################
 import numpy as np
 import constants as cte
-T = 5778                            # T (isotermic) of the medium
+T = 5778                            # T (isotermic) of the medium (not used yet)
 
-zl = -15 #-np.log(1e7)                    # lower boundary optically thick
+zl = -15 #-np.log(1e7)                  # lower boundary optically thick
 zu = 9 #-np.log(1e-3)                   # upper boundary optically thin
-dz = 1                              # stepsize
-
+dz = 1                                  # stepsize
 
 w_normaliced = True
 
@@ -38,7 +37,7 @@ ju = 1
 jl = 0
 
 tolerance = 1e-5 #0.5e-3                   # Tolerance for finding the solution
-max_iter = 100000                            # maximum number of iterations to find the solution
+max_iter = 10000                            # maximum number of iterations to find the solution
 initial_plots = False
 plots = True
 nn = int((wu-wl)/dw /2)                    # element of frequency at which plot
