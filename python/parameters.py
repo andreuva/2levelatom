@@ -7,7 +7,7 @@ import constants as cte
 T = 5778                            # T (isotermic) of the medium
 
 zl = -15 #-np.log(1e7)                    # lower boundary optically thick
-zu = 8 #-np.log(1e-3)                   # upper boundary optically thin
+zu = 9 #-np.log(1e-3)                   # upper boundary optically thin
 dz = 1                              # stepsize
 
 
@@ -29,17 +29,17 @@ else:
 gaussian = True
 qnd = 8                            # nodes in the gaussian quadrature (# dirs) (odd number)
 
-a = 1e-3                              # dumping Voigt profile a=gam/(2^1/2*sig)
-r = 1e-12                           # line strength XCI/XLI
+a = 1e-3                            # dumping Voigt profile a=gam/(2^1/2*sig)
+r = 1e-12                           # XCI/XLI
 eps = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col = 0                       # Depolirarization colisions (delta)
 Hd = 1                            # Hanle depolarization factor [1/5, 1]
 ju = 1
 jl = 0
 
-tolerance = 1e-4 #0.5e-3                   # Tolerance for finding the solution
-max_iter = 5000                            # maximum number of iterations to find the solution
-initial_plots = True
+tolerance = 1e-5 #0.5e-3                   # Tolerance for finding the solution
+max_iter = 100000                            # maximum number of iterations to find the solution
+initial_plots = False
 plots = True
 nn = int((wu-wl)/dw /2)                    # element of frequency at which plot
 mm = -1                                    # dir at with plot the maps
