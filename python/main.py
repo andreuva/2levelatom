@@ -14,89 +14,6 @@ from jsymbols import jsymbols
 import gaussian_quadrature as gauss
 jsymbols = jsymbols()
 
-# We define the z0, zl, dz as our heigt grid (just 1D because of a
-# plane-parallel atmosfere and axial-simetry)
-zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
-
-# Define the grid in frequencies ( or wavelengths )
-if pm.w_normaliced:
-    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
-    wnorm = ww.copy()
-else:
-    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # Compute the 1D spectral grid
-    wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
-
-# Define the directions of the rays
-if pm.gaussian:
-    [weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd, pm.tolerance)
-    weigths_shape = np.repeat(np.repeat(weigths[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
-else:
-    if pm.qnd%2 != 0:
-        print('Changing the number of directions in the cuadrature', end=' ')
-        print(f'from {pm.qnd}',end=' ')
-        pm.qnd += 1
-        print(f'to {pm.qnd}')
-
-    if pm.qnd < 50:
-        print('To few ray directions, changing', end=' ')
-        print(f'from {pm.qnd}',end=' ')
-        pm.qnd = 60
-        print(f'to {pm.qnd}')
-        
-    mus = np.linspace(-1, 1, pm.qnd)
-
-# ------------------------ SOME INITIAL CONDITIONS --------------------------
-# Compute the initial Voigts vectors
-phy = np.zeros_like(wnorm)
-for i in range(len(wnorm)):
-    phy[i] = np.real(func.voigt(wnorm[i], pm.a))
-phy = phy/integ.simps(phy, wnorm)          # normalice phy to sum 1
-
-# Initialaice the intensities vectors to solve the ETR
-# Computed as a tensor in zz, ww, mus
-plank_Ishape = np.repeat(np.repeat(np.ones_like(wnorm)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
-mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
-phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
-wnorm_shape = np.repeat(np.repeat(wnorm[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
-zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(wnorm), axis=1)[:, :, np.newaxis], len(mus), axis=2)
-tau_shape = np.exp(-zz_shape)*phy_shape #+ np.exp(-zz_shape)/pm.r
-
-
-w2jujl = 1 # jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-rr = phy_shape/(phy_shape + pm.r)
-
-# Compute the source function as a tensor in of zz, ww, mus
-# Initialaice the used tensors
-II = plank_Ishape.copy()
-II[1:] = II[1:]*0
-QQ = np.zeros_like(II)
-
-S00 = plank_Ishape.copy()
-S20 = np.zeros_like(S00)
-
-SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
-SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
-
-SI = rr*SLI + (1 - rr)*plank_Ishape
-SQ = rr*SLQ
-
-SI_analitic = (1-pm.eps)*(1-np.exp(-tau_shape*np.sqrt(3*pm.eps))/(1+np.sqrt(pm.eps))) + pm.eps*plank_Ishape
-
-if pm.initial_plots:
-    plt.plot(wnorm, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
-    plt.plot(wnorm, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
-    plt.plot(wnorm, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
-    plt.plot(wnorm, (SLI//plank_Ishape)[5,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
-    plt.xlabel(r'$\nu\ (Hz)$')
-    plt.legend()
-    plt.show()
-    plt.plot(wnorm, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
-    plt.plot(wnorm, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
-    plt.plot(wnorm, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
-    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
-    plt.legend()
-    plt.show()
-
 #  ------------------- FUNCTIONS FOR THE SOLVE METHOD --------------------------
 
 
@@ -105,6 +22,8 @@ def psi_calc(deltaum, deltaup, mode='quadratic'):
     Compute of the psi coefficients in the SC method
     """
     U0 = 1 - np.exp(-deltaum)
+    to_taylor = deltaum < 1e-3
+    U0[to_taylor] = deltaum[to_taylor] - deltaum[to_taylor]**2/2 + deltaum[to_taylor]**3/6
     U1 = deltaum - U0
     
     if mode == 'quadratic':
@@ -171,6 +90,89 @@ def RTE_SC_solve(I, Q, SI, SQ, tau, mu):
     
     return I, Q, l_st
 
+
+def trapezoidal(y,x, axis=-1):
+    h = x[1:] - x[:-1]
+
+    if axis==0:
+        I = np.sum((y[:-1] + y[1:])*h/2)
+    else:
+        I = np.zeros_like(y[:,0])
+        for i in range(y.shape[0]):
+            I[i] = np.sum((y[i,:-1] + y[i,1:])*h/2)
+
+    return I
+
+# We define the z0, zl, dz as our heigt grid (just 1D because of a
+# plane-parallel atmosfere and axial-simetry)
+zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
+
+# Define the grid in frequencies ( or wavelengths )
+if pm.w_normaliced:
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
+    wnorm = ww.copy()
+else:
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # Compute the 1D spectral grid
+    wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
+
+# Define the directions of the rays
+
+[weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd, 1e-10)
+weigths_shape = np.repeat(np.repeat(weigths[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
+
+# ------------------------ SOME INITIAL CONDITIONS --------------------------
+# Compute the initial Voigts vectors
+phy = np.zeros_like(wnorm)
+for i in range(len(wnorm)):
+    phy[i] = np.real(func.voigt(wnorm[i], pm.a))
+phy = phy/trapezoidal(phy, wnorm, 0)          # normalice phy to sum 1
+
+
+# Initialaice the intensities vectors to solve the ETR
+# Computed as a tensor in zz, ww, mus
+plank_Ishape = np.repeat(np.repeat(np.ones_like(wnorm)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
+phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+wnorm_shape = np.repeat(np.repeat(wnorm[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
+zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(wnorm), axis=1)[:, :, np.newaxis], len(mus), axis=2)
+tau_shape = np.exp(-zz_shape)*(phy_shape + pm.r)
+
+
+w2jujl = 1 # jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
+rr = phy_shape/(phy_shape + pm.r)
+
+# Compute the source function as a tensor in of zz, ww, mus
+# Initialaice the used tensors
+II = plank_Ishape.copy()
+II[1:] = II[1:]*0
+QQ = np.zeros_like(II)
+
+S00 = plank_Ishape.copy()
+S20 = np.zeros_like(S00)
+
+SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
+SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
+
+SI = rr*SLI + (1 - rr)*plank_Ishape
+SQ = rr*SLQ
+
+SI_analitic = (1-pm.eps)*(1-np.exp(-tau_shape*np.sqrt(3*pm.eps))/(1+np.sqrt(pm.eps))) + pm.eps*plank_Ishape
+
+if pm.initial_plots:
+    plt.plot(wnorm, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
+    plt.plot(wnorm, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
+    plt.plot(wnorm, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
+    plt.plot(wnorm, (SLI//plank_Ishape)[5,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
+    plt.xlabel(r'$\nu\ (Hz)$')
+    plt.legend()
+    plt.show()
+    plt.plot(wnorm, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
+    plt.plot(wnorm, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
+    plt.plot(wnorm, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
+    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
+    plt.legend()
+    plt.show()
+    
 # -----------------------------------------------------------------------------------
 # ---------------------- MAIN LOOP TO OBTAIN THE SOLUTION ---------------------------
 # -----------------------------------------------------------------------------------
@@ -188,14 +190,17 @@ for itt in t:
     # print('computing the components of the radiative tensor')
 
     Jm00 = 1/2. * np.sum(II*weigths_shape, axis=-1)
-    Jm00 = integ.simps(phy_shape[:,:,0]*Jm00, wnorm)
+    Jm00 = trapezoidal(phy_shape[:,:,0]*Jm00, wnorm)
+    # Jm00 = integ.simps(phy_shape[:,:,0]*Jm00, wnorm)
 
     Jm02 = (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
     Jm02 = 1/np.sqrt(4**2 * 2) * np.sum(Jm02*weigths_shape, axis=-1)
-    Jm02 =  integ.simps( phy_shape[:,:,0]*Jm02, wnorm)
+    Jm02 = trapezoidal( phy_shape[:,:,0]*Jm02, wnorm)
+    # Jm02 =  integ.simps( phy_shape[:,:,0]*Jm02, wnorm)
 
     lambd = 1/2. * np.sum(lambd*weigths_shape, axis=-1)
-    lambd = integ.simps( phy_shape[:,:,0] * lambd, wnorm)
+    lambd = trapezoidal( phy_shape[:,:,0] * lambd, wnorm)
+    # lambd = integ.simps( phy_shape[:,:,0] * lambd, wnorm)
     
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
@@ -205,10 +210,11 @@ for itt in t:
     # print('Computing the source function to close the loop and solve the ETR again')
     # computing Jm00 and Jm02 with tensor shape as the rest of the variables
 
-    S00 = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
+    S00_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col) * w2jujl * Jm02_shape
+    S00_new = (S00_new - S00)/(1 - (1-pm.eps)*lambd) + S00
 
-    SLI = S00 + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
+    SLI = S00_new + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
     SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 
     SI_new = rr*SLI + (1 - rr)*plank_Ishape
@@ -221,6 +227,7 @@ for itt in t:
     olds = np.array([SI])
     news = np.array([SI_new])
     SI = SI_new.copy()
+    S00 = S00_new.copy()
     SQ = SQ_new.copy()
     tol = np.max(np.abs(np.abs(olds - news)/(olds+1e-200)))
     # print('Actual tolerance is :',tol)

@@ -25,7 +25,7 @@ else:
     w0 = 0
     dw = 0.5
 
-gaussian = True
+
 qnd = 8                            # nodes in the gaussian quadrature (# dirs) (odd number)
 
 a = 1e-3                            # dumping Voigt profile a=gam/(2^1/2*sig)

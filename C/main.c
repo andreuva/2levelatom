@@ -7,43 +7,43 @@
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>    /* Standard Library of Complex Numbers */
+#include "gauleg.c"
 
-/*  DEFINE SOME OF THE CONSTANTS OF THE PROBLEM  */
+/* ------- DEFINE SOME OF THE CONSTANTS OF THE PROBLEM ---------- */
 const int c = 299792458;                   /* # m/s */
 const float h = 6.626070150e-34;             /* # J/s */
 const float kb = 1.380649e-23;                /* # J/K */
 const float R = 8.31446261815324;            /* # J/K/mol */
-
-/*  DEFINE THE PROBLEM PARAMETERS                */
-const float zl = -15; /*-log(1e3);                    /* optical thicknes of the lower boundary */
-const float zu = 8; /*-log(1e-3);                   /* optical thicknes of the upper boundary */
-const short nz = 24;                      /* # number of points in the z axes */
-
-const float wl = c/(502e-9);                /* # lower/upper frequency limit (lambda in nm) */
-const float wu = c/(498e-9);
-const float w0 = c/(500e-9);                /* wavelength of the transition (nm --> hz) */
-const short nw = 10;                        /* # points to sample the spectrum */
-
-const short qnd = 2;                   /* # nodes in the gaussian quadrature (# dirs) (odd) */
-
 const int T = 5778;                    /* # T (isotermic) of the medium */
 
-const float a = 1;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-const float r = 0.001;                     /* # line strength XCI/XLI */
-const float eps = 1e-4;                  /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-const float dep_col = 0.5;               /* # Depolirarization colisions (delta) */
-const float Hd = 0.25;                    /* # Hanle depolarization factor [1/5, 1] */
+/* ------ DEFINE THE PROBLEM PARAMETERS ------- */
+const float zl = -15; /*-log(1e3);          /* optical thicknes of the lower boundary */
+const float zu = 9; /*-log(1e-3);           /* optical thicknes of the upper boundary */
+const float dz = 1;                         /* (zu-zl)/(nz-1); */
+const short nz = (zu-zl)/dz + 1;                        /* # number of points in the z axes */
+
+const float wl = -5; /*c/(502e-9);          /* # lower/upper frequency limit (lambda in nm) */
+const float wu = 5;                         /*c/(498e-9);
+/*const float w0 =  c/(500e-9);*/           /* wavelength of the transition (nm --> hz) */
+const float dw = 0.5;                       /* (wu-wl)/(nw-1); */
+const short nw = (wu-wl)/dw + 1;                /* # points to sample the spectrum */
+
+const short qnd = 8;                        /* # nodes in the gaussian quadrature (# dirs) (odd) */
+
+const float a = 1e-3;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+const float r = 1e-12;                     /* # line strength XCI/XLI */
+const float eps = 1e-4;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+const float dep_col = 0;                   /* # Depolirarization colisions (delta) */
+const float Hd = 1;                        /* # Hanle depolarization factor [1/5, 1] */
 const short ju = 1;
 const short jl = 0;
 
-const float tolerance = 1e-3;           /* # Tolerance for finding the solution */
-const int max_iter = 5000;              /* maximum number of iterations */
+const float tolerance = 1e-5;           /* # Tolerance for finding the solution */
+const int max_iter = 100000;              /* maximum number of iterations */
 
-const float dz = (zu-zl)/(nz-1);
-const float dw = (wu-wl)/(nw-1);
 
 /* -------------------------------------------------------------------*/
-/* -----------------------PHYSICAL FUNCTIONS -------------------------*/
+/* -----------------------      FUNCTIONS    -------------------------*/
 /* -------------------------------------------------------------------*/
 double complex voigt(double v, double a){
 
@@ -85,9 +85,147 @@ double complex voigt(double v, double a){
     return t;
 }
 
-double plank_wien(double nu, int T){
-    /*  Return the Wien aproximation to the plank function */
-    return (2*h*nu*nu*nu)/(c*c) * exp( -h*nu/(kb*T) );
+double num_gaus_quad(double y[], double weigths[], int nn){
+    int i;
+    double result = 0.;
+
+    for (i = 0; i < nn; i++){
+        result = result + y[i]*weigths[i];
+    }
+
+    return result;    
+}
+
+double trapezoidal(double y[], double x[], int n){
+    double Integral = 0.;
+
+    for (int i = 1; i < n; i++){
+        Integral = Integral + (y[i-1] + y[i])*(x[i]-x[i-1])/2.;
+    }
+    return Integral;
+}
+
+void psi_calc(double deltaum[], double deltaup[], \
+              double psim[], double psio[], double psip[], int mode){
+    // Compute of the psi coefficients in the SC method
+
+    double U0[nw], U1[nw], U2[nw];
+    int j;
+
+    for (j = 0; j < nw; j++){
+        
+        if (deltaum[j] < 1e-3){
+            U0[j] = deltaum[j] - deltaum[j]*deltaum[j]/2 +\
+                    deltaum[j]*deltaum[j]*deltaum[j]/6;
+        }
+        else{
+            U0[j] = 1 - exp(-deltaum[j]);
+        }
+        U1[j] = deltaum[j] - U0[j];
+    }
+     
+    
+    if (mode == 1){
+        for (j = 0; j < nw; j++){
+            psim[j] = U0[j] - U1[j]/deltaum[j];
+            psio[j] = U1[j]/deltaum[j];
+            psip[j] = 0;
+        }
+    }
+    else if (mode == 2){
+        for (j = 0; j < nw; j++){
+            U2[j] = deltaum[j]*deltaum[j] - 2*U1[j];
+
+            psim[j] = U0[j] + (U2[j] - U1[j]*(deltaup[j] + 2*deltaum[j]))/\
+                                        (deltaum[j]*(deltaum[j] + deltaup[j]));
+            psio[j] = (U1[j]*(deltaum[j] + deltaup[j]) - U2[j])/(deltaum[j]*deltaup[j]);
+            psip[j] = (U2[j] - U1[j]*deltaum[j])/(deltaup[j]*(deltaup[j]+deltaum[j]));
+        }        
+    }
+    else{
+        fprintf(stdout,"ERROR IN MODE OF THE PSICALC FUNCTION");
+    }
+
+    return;
+}
+
+void RTE_SC_solve(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][qnd],\
+                 double SQ[nz][nw][qnd], double lambda[][nw][qnd], double tau[nz][nw], double mu[qnd]){
+    
+    // Compute the new intensities form the source function with the SC method
+    
+    double psip_prev[nw], psim[nw], psio[nw], psip[nw];
+    double deltaum[nw], deltaup[nw];
+    int i,j,k;
+
+    for (k = 0; k < qnd; k++){
+        if (mu[k] > 0){
+            
+            for (j = 0; j < nw; j++){ psip_prev[j] = 0; }
+
+            for (i = 1; i < nz; i++){
+                for (j = 0; j < nw; j++){ deltaum[j] = fabs((tau[i-1][j]-tau[i][j])/mu[k]); }
+                
+                if (i < nz-1){
+                    for (j = 0; j < nw; j++){ deltaup[j] = fabs((tau[i][j]-tau[i+1][j])/mu[k]); }
+                    psi_calc(deltaum, deltaup, psim, psio, psip, 2);
+
+                    for (j = 0; j < nw; j++){
+                        II[i][j][k] = II[i-1][j][k]*exp(-deltaum[j]) + SI[i-1][j][k]*psim[j] + SI[i][j][k]*psio[j] + SI[i+1][j][k]*psip[j];
+                        QQ[i][j][k] = QQ[i-1][j][k]*exp(-deltaum[j]) + SQ[i-1][j][k]*psim[j] + SQ[i][j][k]*psio[j] + SQ[i+1][j][k]*psip[j];
+                        lambda[i][j][k] = psip_prev[j]*exp(-deltaum[j]) + psio[j];
+                        psip_prev[j] = psip[j];
+                    }
+                    
+                }
+                else{
+                    psi_calc(deltaum, deltaup, psim, psio, psip, 1);
+                    for (j = 0; j < nw; j++){
+                        II[i][j][k] = II[i-1][j][k]*exp(-deltaum[j]) + SI[i-1][j][k]*psim[j] + SI[i][j][k]*psio[j];
+                        QQ[i][j][k] = QQ[i-1][j][k]*exp(-deltaum[j]) + SQ[i-1][j][k]*psim[j] + SQ[i][j][k]*psio[j];
+                        lambda[i][j][k] = psip_prev[j]*exp(-deltaum[j]) + psio[j];
+                    }
+                }
+                             
+            }
+        }
+        else{
+
+            for (j = 0; j < nw; j++){ psip_prev[j] = 0; }
+
+            for (i = nz-2; i >= 0; i--){
+                
+                for (j = 0; j < nw; j++){ deltaum[j] = fabs((tau[i][j]-tau[i+1][j])/mu[k]); }
+                
+                if (i > 0){
+
+                    for (j = 0; j < nw; j++){ deltaup[j] = fabs((tau[i-1][j]-tau[i][j])/mu[k]); }
+                    psi_calc(deltaum, deltaup, psim, psio, psip, 2);
+
+                    for (j = 0; j < nw; j++){
+                        II[i][j][k] = II[i+1][j][k]*exp(-deltaum[j]) + SI[i+1][j][k]*psim[j] + SI[i][j][k]*psio[j] + SI[i-1][j][k]*psip[j];
+                        QQ[i][j][k] = QQ[i+1][j][k]*exp(-deltaum[j]) + SQ[i+1][j][k]*psim[j] + SQ[i][j][k]*psio[j] + SQ[i-1][j][k]*psip[j];
+                        lambda[i][j][k] = psip_prev[j]*exp(-deltaum[j]) + psio[j];
+                        psip_prev[j] = psip[j];
+//                         fprintf(stdout, "psip: %f, psio: %f, psim: %f, deltaum: %f, deltaup: %f,\n\
+// taus: %f \t %f \t %f, mu: %f \n"\
+                        ,psip[j],psio[j], psim[j],deltaum[j],deltaup[j],tau[i-1][j],tau[i][j],tau[i+1][j], mu[k]);
+                    }
+                    
+                }
+                else{
+                    psi_calc(deltaum, deltaup, psim, psio, psip, 1);
+
+                    for (j = 0; j < nw; j++){
+                        II[i][j][k] = II[i+1][j][k]*exp(-deltaum[j]) + SI[i+1][j][k]*psim[j] + SI[i][j][k]*psio[j];
+                        QQ[i][j][k] = QQ[i+1][j][k]*exp(-deltaum[j]) + SQ[i+1][j][k]*psim[j] + SQ[i][j][k]*psio[j];
+                        lambda[i][j][k] = psip_prev[j]*exp(-deltaum[j]) + psio[j];
+                    }
+                }            
+            }
+        }
+    }
+    return;
 }
 
 /* -------------------------------------------------------------------*/
@@ -99,177 +237,139 @@ int main() {
     fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
     fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
     fprintf(stdout, "resolution in the z axis:                          %1.3e \n", dz);
-    fprintf(stdout, "lower/upper frequency limit (Hz):                  %1.3e   %1.3e \n", wl, wu);
-    fprintf(stdout, "frequency of the transition (Hz):                  %1.2e \n", w0);
+    fprintf(stdout, "total number of points in z:                       %i    \n", nz);
+    fprintf(stdout, "lower/upper frequency limit :                      %1.3e   %1.3e \n", wl, wu);
     fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
     fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
-    fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);
-    fprintf(stdout, "dumping Voigt profile a=gam/(2^1/2*sig):           %f \n", a);
+    /*fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);*/
+    fprintf(stdout, "dumping Voigt profile:                             %f \n", a);
     fprintf(stdout, "line strength XCI/XLI:                             %f \n", r);
     fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %f \n", eps);
     fprintf(stdout, "Depolirarization colisions (delta):                %f \n", dep_col);
     fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %f \n", Hd);
     fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);
-    fprintf(stdout, "Tolerance for finding the solution:                %f º/. \n", tolerance*100);
+    fprintf(stdout, "Tolerance for finding the solution:                %f \n", tolerance);
     fprintf(stdout, "------------------------------------------------------------------\n\n");
 
 
     int i,j,k,l,m;               /* define the integers to count the loops*/
 
-    double II[nz][nw][qnd], II_new[nz][nw][qnd], QQ[nz][nw][qnd], QQ_new[nz][nw][qnd];
-    double SI[nz][nw][qnd], SI_new[nz][nw][qnd], SQ[nz][nw][qnd], SQ_new[nz][nw][qnd];
-    double Jm00[nz][nw], Jm02[nz][nw];
+    double II[nz][nw][qnd], QQ[nz][nw][qnd];
+    double S00[nz], S00_new[nz], S20[nz];
+    double SLI[nz][qnd], SLQ[nz][qnd];
+    double SI[nz][nw][qnd], SI_new[nz][nw][qnd], SQ[nz][nw][qnd];
+    double lambda[nz][nw][qnd], lambda_w_integ[nz][nw], lambda_integ[nz];
+    double J00[nz][nw], J20[nz][nw];
+    double integrand_mu[qnd], integrand_w[nw];
+    double Jm00[nz], Jm20[nz];
 
-    double zz[nz], taus[nz];               /* compute the 1D grid in z */
-    double ww[nw], wnorm[nw], phy[nw], plank[nw], norm=0;
-    double mus[qnd];
-    double wa = w0*(sqrt(2*R*T/1e-3))/c;
+    double zz[nz], taus[nz][nw];
+    double ww[nw], phy[nw], rr[nw], plank[nw];
+    double mus[qnd], weigths[qnd];
     
-    double psim,psio,psip, U0,U1,U2, deltaum, deltaup, I1, I2;
-    double mrc, diff;
+    double psim[nw], psio[nw], psip[nw], w2jujl;
+    double mrc, aux;
 
-    /* double II[nz][nw][qnd],QQ[nz][nw][qnd],SI[nz][nw][qnd],SQ[nz][nw][qnd];
-    /* compute the 1D grid in z, the Voigt profile and the normalization */
-
-
+    /* compute the 1D grid in z*/
     for(i=0; i<nz; i++){
         zz[i] = zl + i*dz;
     }
 
+    /* compute the grid in w and the profile of the line */
     for(j=0; j<nw; j++){
         ww[j] = wl + j*dw;
-        wnorm[j] = (ww[j] - w0)/wa;
-        plank[j] =  plank_wien(ww[j], T);
-        phy[j] = creal(voigt(wnorm[j],a));
+        plank[j] =  1;
+        phy[j] = creal(voigt(ww[j],a));
     }
 
-    for(i=0; i<qnd; i++){
-        mus[i] = -1 + i*2./(qnd-1);
+    /* normalice the profile for the integral to be 1 */
+    double normalization = trapezoidal(phy, ww, nw);
+    for (j = 0;j < nw; j++){
+        phy[j] = phy[j]/normalization;
+        rr[j] = phy[j]/(phy[j] + r);
+        /*fprintf(stdout,"rr: %1.12e \n",rr[j]);*/
     }
-
+    fprintf(stdout, "Integral of the line profile:  %e \n", trapezoidal(phy, ww, nw));
+    
+    w2jujl = 1.;
+    gauleg(-1, 1, mus, weigths, qnd);
+    
     for (i=0; i<nz; i++){
-        for (j = 0; j < nw; j++){
-            for (k = 0; k < qnd; k++){
-                if(i==nz-1){ II[i][j][k] = 0; }
-                II[i][j][k] = plank[j];
+        S00[i] = 1;
+        S20[i] = 0;
+
+        for (k = 0; k < qnd; k++){
+            SLI[i][k] = S00[i] + w2jujl*(3*mus[k]*mus[k] -1)/(2*sqrt(2)) * S20[i];
+            SLQ[i][k] = w2jujl*3*(mus[k]*mus[k] -1)/(2*sqrt(2)) * S20[i];
+
+            for (j = 0; j < nw; j++){
+                SI[i][j][k] = rr[j]*SLI[i][k] + (1-rr[j])*plank[j];
+                SQ[i][j][k] = rr[j]*SLQ[i][k];
+                
+                if(i==0){ 
+                    II[i][j][k] = plank[j];
+                }else{
+                    II[i][j][k] = 0;
+                }
                 QQ[i][j][k] = 0;
-                SI[i][j][k] = plank[j];
-                SQ[i][j][k] = 0;
+
+                taus[i][j] = exp(-zz[i])*(phy[j] + r);                
             }
         }
     }
+
     /* -------------------------------------------------------------------*/
     /* ---------------------------- MAIN LOOP ----------------------------*/
     /* -------------------------------------------------------------------*/
     for(l=1; l<=max_iter; l++){         /* loop with the total iterations */
 
-        /* -------------------------------------------------------------------*/
         /*--------------------------- SOLVE THE RTE --------------------------*/
-        /* -------------------------------------------------------------------*/
-        for (k = 0; k < qnd; k++){          /* loop for all the directions*/
-            
-            if(mus[k] > 0){                     /*check if the direction is upwards */
-                
-                for (i = 1; i < nz-1; i++){           /* loop for all the z's*/
+              
+        RTE_SC_solve(II, QQ, SI, SQ, lambda, taus, mus);
 
-                    deltaum = fabs(exp(-zz[i]) - exp(-zz[i-1]));
-                    deltaup = fabs(exp(-zz[i+1]) - exp(-zz[i]));
+        // for (i = 0; i < nz; i++){ fprintf(stdout,"%f \n", II[i][0][0]);}
+        
+        /* -------------------      COMPUTE THE J    -----------------------*/
 
-                    U0 = 1 - exp(-deltaum);
-                    U1 = deltaum - U0;
-                    U2 = deltaum*deltaum - 2*U1;
-
-                    psim = U0 + (U2 - U1*(deltaup + 2*deltaum))/(deltaum*(deltaum + deltaup));
-                    psio = (U1*(deltaum + deltaup) - U2)/(deltaum*deltaup);
-                    psip = (U2 - U1*deltaum)/(deltaup*(deltaup+deltaum));
-
-                    for (j = 0; j < nw; j++){           /* loop over frequencies*/
-                        II_new[i][j][k] = II_new[i-1][j][k]*exp(-deltaum) + SI[i-1][j][k]*psim + SI[i][j][k]*psio + SI[i+1][j][k]*psip;
-                        QQ_new[i][j][k] = QQ_new[i-1][j][k]*exp(-deltaum) + SQ[i-1][j][k]*psim + SQ[i][j][k]*psio + SQ[i+1][j][k]*psip;
-                    }
-                    
-                }
-            
-                /*Last point with linear aproximation*/
-                deltaum = fabs(exp(-zz[nz-1])/mus[j] - exp(-zz[nz-2])/mus[j]);
-
-                U0 = 1 - exp(-deltaum);
-                U1 = deltaum - U0;
-
-                psim = U0 - U1/deltaum;
-                psio = U1/deltaum;
-
-                for (j = 0; j < nw; j++){
-                    II_new[nz-1][j][k] = II_new[nz-2][j][k]*exp(-deltaum) + SI[nz-2][j][k]*psim + SI[nz-1][j][k]*psio;
-                    QQ_new[nz-1][j][k] = QQ_new[nz-2][j][k]*exp(-deltaum) + SQ[nz-2][j][k]*psim + SQ[nz-1][j][k]*psio;
-                }
-
-            }
-            else{ /*repeat with the downward rays*/
-
-                for (i = nz-1; i > 0; i--){           /* loop for all the z's*/
-
-                    deltaum = fabs(exp(-zz[i])/mus[j] - exp(-zz[i+1])/mus[j]);
-                    deltaup = fabs(exp(-zz[i-1])/mus[j] - exp(-zz[i])/mus[j]);
-
-                    U0 = 1 - exp(-deltaum);
-                    U1 = deltaum - U0;
-                    U2 = deltaum*deltaum - 2*U1;
-
-                    psim = U0 + (U2 - U1*(deltaup + 2*deltaum))/(deltaum*(deltaum + deltaup));
-                    psio = (U1*(deltaum + deltaup) - U2)/(deltaum*deltaup);
-                    psip = (U2 - U1*deltaum)/(deltaup*(deltaup+deltaum));
-
-                    for (j = 0; j < nw; j++){           /* loop over frequencies*/
-                        II_new[i][j][k] = II_new[i+1][j][k]*exp(-deltaum) + SI[i+1][j][k]*psim + SI[i][j][k]*psio + SI[i-1][j][k]*psip;
-                        QQ_new[i][j][k] = QQ_new[i+1][j][k]*exp(-deltaum) + SQ[i+1][j][k]*psim + SQ[i][j][k]*psio + SQ[i-1][j][k]*psip;
-                    }
-                    
-                }
-
-                deltaum = fabs(exp(-zz[0])/mus[j] - exp(-zz[1])/mus[j]);
-
-                U0 = 1 - exp(-deltaum);
-                U1 = deltaum - U0;
-
-                psim = U0 - U1/deltaum;
-                psio = U1/deltaum;
-
-                for (j = 0; j < nw; j++){
-                    II_new[0][j][k] = II_new[1][j][k]*exp(-deltaum) + SI[1][j][k]*psim + SI[0][j][k]*psio;
-                    QQ_new[0][j][k] = QQ_new[1][j][k]*exp(-deltaum) + SQ[1][j][k]*psim + SQ[0][j][k]*psio;
-                }
-
-            }
-        }
-        /* -------------------------------------------------------------------*/
-        /* ------------------- COMPUTE THE J AND NEW S -----------------------*/
-        /* -------------------------------------------------------------------*/
         for (i = 0; i < nz; i++){
             for (j = 0; j < nw; j++){
-                I1 = 0;
-                I2 = 0;
-                for (k = 1; k < qnd; k++){
-                    I1 += (II_new[i][j][k-1] + II_new[i][j][k])*(mus[k]-mus[k-1])/2.;
-                    I2 += (((3*mus[k-1]*mus[k-1] - 1)*II_new[i][j][k-1] + 3*(mus[k-1]*mus[k-1] - 1)*QQ_new[i][j][k-1]) \
-                    + ((3*mus[k]*mus[k] - 1)*II_new[i][j][k] + 3*(mus[k]*mus[k] - 1)*QQ_new[i][j][k]) )\
-                    * (mus[k]-mus[k-1])/2.;
-                }
+                for (k = 0; k < qnd; k++){ integrand_mu[k] = (3.*mus[k]*mus[k] - 1)*II[i][j][k] +\
+                                            3.*(mus[k]*mus[k] - 1)*QQ[i][j][k]; }
                 
-                Jm00[i][j] = 1/2 * I1;
-                Jm02[i][j] = 1/(4*sqrt(2)) * I2;
+                J00[i][j] = num_gaus_quad( II[i][j], weigths, qnd);
+                J20[i][j] = num_gaus_quad( integrand_mu, weigths, qnd);
+                lambda_w_integ[i][j] = num_gaus_quad( lambda[i][j], weigths, qnd);
+            }
+
+            for (j = 0; j < nw; j++){ integrand_w[j] = phy[j]*J00[i][j];}
+            Jm00[i] = 1./2. * trapezoidal(integrand_w, ww, nw);
+
+            for (j = 0; j < nw; j++){ integrand_w[j] = phy[j]*J20[i][j];}
+            Jm20[i] = 1./(4.*sqrt(2)) * trapezoidal(integrand_w, ww, nw);
+
+            for (j = 0; j < nw; j++){ integrand_w[j] = phy[j]*lambda_w_integ[i][j];}
+            lambda_integ[i] = 1./2. * trapezoidal(integrand_w, ww, nw);
+        }
+        /* -------------------     COMPUTE THE NEW S   -----------------------*/
+
+        for (i = 0; i < nz; i++){
+
+            S00_new[i] = (1-eps)*Jm00[i] + eps;
+            S00_new[i] = (S00_new[i] - S00[i])/(1 - (1-eps)*lambda_integ[i]) + S00[i];
+            S20[i] = Hd * (1-eps)/(1 + (1-eps)*dep_col) * w2jujl * Jm20[i];
+            
+            for (j = 0; j < nw; j++){
+
+                for (k = 0; k < qnd; k++){
+
+                    SLI[i][k] = S00_new[i] +  w2jujl * (3*mus[k]*mus[k] - 1)/sqrt(8.) * S20[i];
+                    SLQ[i][k] = w2jujl * 3*(mus[k]*mus[k] - 1)/sqrt(8.) * S20[i];
+
+                    SI_new[i][j][k] = rr[j]*SLI[i][k] + (1 - rr[j])*plank[j];
+                    SQ[i][j][k] = rr[j]*SLQ[i][k];                
+                }   
             }
         }
-        
-        for ( i = 0; i < nz; i++){
-            for ( j = 0; j < nw; j++){
-                for (k = 0; k < qnd; k++){
-                    SI_new[i][j][k] = (1-eps)*Jm00[i][j] + eps*plank[j];
-                    SQ_new[i][j][k] = (1-eps)*Jm02[i][j];
-                }   
-            }   
-        }
-
         /* -------------------------------------------------------------------*/
         /* ------------------- COMPUTE THE DIFFERENCES -----------------------*/
         /* -------------------------------------------------------------------*/
@@ -277,25 +377,27 @@ int main() {
         for (i = 0; i < nz; i++){
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                    diff = fabs((SI[i][j][k] - SI_new[i][j][k])/SI_new[i][j][k]);
-                    if (diff > mrc){
-                        mrc = diff;
+                    aux = fabs((SI[i][j][k] - SI_new[i][j][k])/SI_new[i][j][k]);
+                    if (aux > mrc){
+                        mrc = aux;
                     }
                 }
             }
         }
         
-        printf("Actual tolerance is :  %1.2e \n",mrc*100);
+        printf("iteration: %i, Actual tolerance is :  %1.2e \n",l, mrc);
         if (mrc < tolerance){
             break;
         }
         for (i = 0; i < nz; i++){
+            
+            S00[i] = S00_new[i];
+
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                    II[i][j][k] = II_new[i][j][k];
-                    QQ[i][j][k] = QQ_new[i][j][k];
+
                     SI[i][j][k] = SI_new[i][j][k];
-                    SQ[i][j][k] = SQ_new[i][j][k];
+                
                 }   
             }   
         }        
