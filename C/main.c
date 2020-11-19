@@ -232,7 +232,16 @@ void RTE_SC_solve(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][
 /* ------------------------- MAIN PROGRAM ----------------------------*/
 /* -------------------------------------------------------------------*/
 int main() {
+    
+    
+    // char var[128],eq[1];
+    // double test1,test2;
 
+    // fscanf(stdin,"%*s %*s %lf", &test1 );
+    // fscanf(stdin,"%*s %*s %lf", &test2 );
+    // fprintf(stdout, "variable de salida: %e %e ", test1, test2);
+    
+    
     fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
     fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
     fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
@@ -289,7 +298,7 @@ int main() {
         rr[j] = phy[j]/(phy[j] + r);
         /*fprintf(stdout,"rr: %1.12e \n",rr[j]);*/
     }
-    fprintf(stdout, "Integral of the line profile:  %e \n", trapezoidal(phy, ww, nw));
+    // fprintf(stdout, "Integral of the line profile:  %e \n", trapezoidal(phy, ww, nw));
     
     w2jujl = 1.;
     gauleg(-1, 1, mus, weigths, qnd);
@@ -402,6 +411,8 @@ int main() {
             }   
         }        
     }
+
+    fprintf(stdout,"\n----------------- FINISHED ------------------\n");
 
     return 0;
 }

@@ -119,6 +119,7 @@ else:
 if pm.qnd%2 != 0:
     pm.qnd = pm.qnd + 1
     print('To avoid singularity at mu=0' + f' the points of the cuadrature has change from {pm.qnd-1} to {pm.qnd}')
+
 [weigths, mus, err] = gauss.GaussLegendreWeights(pm.qnd, 1e-10)
 weigths_shape = np.repeat(np.repeat(weigths[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
 
@@ -158,13 +159,11 @@ SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 SI = rr*SLI + (1 - rr)*plank_Ishape
 SQ = rr*SLQ
 
-SI_analitic = (1-pm.eps)*(1-np.exp(-tau_shape*np.sqrt(3*pm.eps))/(1+np.sqrt(pm.eps))) + pm.eps*plank_Ishape
-
 if pm.initial_plots:
-    plt.plot(wnorm, (II/plank_Ishape)[5,:,-1], color='k', label=r'$B_{\nu}(T= $'+'{}'.format(pm.T) + '$)$')
+    plt.plot(wnorm, (II/plank_Ishape)[5,:,-1], color='k', label=r'$I(\nu,z=0,\mu=1)$')
     plt.plot(wnorm, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
     plt.plot(wnorm, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
-    plt.plot(wnorm, (SLI//plank_Ishape)[5,:,-1], color='r', label=r'$S^L_I(\nu,z=0,\mu=1)$')
+    plt.plot(wnorm, (SQ//SI)[5,:,-1], color='r', label=r'$S_Q/S_I(\nu,z=0,\mu=1)$')
     plt.xlabel(r'$\nu\ (Hz)$')
     plt.legend()
     plt.show()
@@ -248,43 +247,42 @@ if (itt >= pm.max_iter - 1):
     print('The found tolerance is: ',tol*100, '%')
 
 
+if pm.plots:
+    plt.plot(wnorm, (II/plank_Ishape)[-1, :, -1], 'b', label=r'$I/B_{\nu}$')
+    plt.plot(wnorm, (QQ/II)[-1, :, -1], 'r', label='$Q/I$')
+    plt.plot(wnorm, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I/B_{\nu}$')
+    plt.plot(wnorm, (SQ/SI)[-1,:,-1], 'k', label=r'$S_Q/S_I$')
+    plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
+    plt.show()
 
-# plt.plot(wnorm, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
-# plt.plot(wnorm, QQ[-1, :, -1], 'r', label='$Q$')
-# plt.plot(wnorm, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I/B_{\nu}$')
-# plt.plot(wnorm, (SQ/SI)[-1,:,-1], 'k', label=r'$S_Q/S_I$')
-# plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-# plt.show()
+    plt.plot(zz, (II/plank_Ishape)[:, 0, -1], 'r', label=r'$I(\mu=1)$')
+    plt.plot(zz, (SI/plank_Ishape)[:, 0, -1], 'k', label=r'$S_I(\mu=1)$')
+    plt.plot(zz, (QQ/II)[:, 0, -1], 'b', label=r'$Q(\mu=1)$')
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,-1], 'g', label=r'$J^0_0/B_\nu(\mu=1)$')
+    plt.plot(zz,(Jm02_shape/Jm00_shape)[:,0,-1], 'm', label=r'$J^2_0/B_\nu(\mu=1)$')
+    plt.plot(zz, (II/plank_Ishape)[:, 0, 0], 'r--', label=r'$I/B_{\nu}(\mu=-1)$')
+    plt.plot(zz, (SI/plank_Ishape)[:, 0, 0], 'k--', label=r'$S_I(\mu=-1)$')
+    plt.plot(zz, (QQ/II)[:, 0, 0], 'b--', label=r'$Q/I(\mu=-1)$')
+    plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,0], 'g--', label=r'$J^0_0/B_\nu(\mu=-1)$')
+    plt.plot(zz,(Jm02_shape/Jm00_shape)[:,0,0], 'm--', label=r'$J^2_0/B_\nu(\mu=-1)$')
+    plt.legend(); plt.xlabel('z')
+    plt.show()
 
-# plt.plot(zz, (II/plank_Ishape)[:, 0, -1], 'r', label=r'$I(\mu=1)$')
-# plt.plot(zz, (SI/plank_Ishape)[:, 0, -1], 'k', label=r'$S_I(\mu=1)$')
-# plt.plot(zz, (QQ/II)[:, 0, -1], 'b', label=r'$Q(\mu=1)$')
-# plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,-1], 'g', label=r'$J^0_0/B_\nu(\mu=1)$')
-# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,0,-1], 'm', label=r'$J^2_0/B_\nu(\mu=1)$')
-# plt.plot(zz, (II/plank_Ishape)[:, 0, 0], 'r--', label=r'$I/B_{\nu}(\mu=-1)$')
-# plt.plot(zz, (SI/plank_Ishape)[:, 0, 0], 'k--', label=r'$S_I(\mu=-1)$')
-# plt.plot(zz, (QQ/II)[:, 0, 0], 'b--', label=r'$Q/I(\mu=-1)$')
-# plt.plot(zz,(Jm00_shape/plank_Ishape)[:,0,0], 'g--', label=r'$J^0_0/B_\nu(\mu=-1)$')
-# plt.plot(zz,(Jm02_shape/plank_Ishape)[:,0,0], 'm--', label=r'$J^2_0/B_\nu(\mu=-1)$')
-# plt.plot(zz,(SI_analitic)[:,0,-1], 'pink', label = 'Analitic solution')
-# plt.legend(); plt.xlabel('z')
+    plt.plot(tau_shape[:,10,-1], (Jm02_shape/Jm00_shape)[:,10,-1])
+    plt.ylabel(r'$J^2_0/J^0_0$')
+    plt.xlabel(r'optical depth $(\tau)$')
+    plt.xscale('log')
+    plt.show()
 
-# plt.plot(tau_shape[:,10,-1], (Jm02_shape/Jm00_shape)[:,10,-1])
-# plt.ylabel(r'$J^2_0/J^0_0$')
-# plt.xlabel(r'optical depth $(\tau)$')
-# plt.xscale('log')
-# plt.show()
-
-
-# plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
-# plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
-# plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-# plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-# plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-# plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-# plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
-# plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
-# plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_I$');plt.colorbar(); plt.show()
-# plt.imshow(SQ[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_Q$');plt.colorbar(); plt.show()
-# plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-# plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
+    plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
