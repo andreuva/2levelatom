@@ -104,10 +104,10 @@ def trapezoidal(y,x, axis=-1):
     return I
 
 
-
-error = []
-error_2 = []
-for jacob in [True,False]:
+# error = []
+# error_2 = []
+for delta in [0,1e-2,1e-1,1,10]:
+    pm.dep_col=delta
 
     # We define the z0, zl, dz as our heigt grid (just 1D because of a
     # plane-parallel atmosfere and axial-simetry)
@@ -218,8 +218,8 @@ for jacob in [True,False]:
 
         S00_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
         S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col) * w2jujl * Jm02_shape
-        if jacob: 
-            S00_new = (S00_new - S00)/(1 - (1-pm.eps)*lambd) + S00
+        # if jacob:
+        S00_new = (S00_new - S00)/(1 - (1-pm.eps)*lambd) + S00
 
         SLI = S00_new + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
         SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
@@ -238,10 +238,10 @@ for jacob in [True,False]:
         SQ = SQ_new.copy()
         tol = np.max(np.abs(np.abs(olds - news)/(olds+1e-200)))
         
-        if jacob:
-            error.append(tol)
-        else:
-            error_2.append(tol)
+        # if jacob:
+        #     error.append(tol)
+        # else:
+        #     error_2.append(tol)
         
         # print('Actual tolerance is :',tol)
         t.set_description('Actual tolerance is : %1.3e' % tol)
@@ -257,7 +257,13 @@ for jacob in [True,False]:
         print('the parameters to obtain an optimal solution.')
         print('The found tolerance is: ',tol*100, '%')
 
+    plt.plot(tau_shape[:,10,-1], (S20/S00)[:,10,-1], label=r'$\delta^{(2)}=$'+f'{pm.dep_col}')
+    plt.ylabel(r'$S^2_0/S^0_0$')
+    plt.xlabel(r'optical depth $(\tau)$')
+    plt.xscale('log')
 
+plt.legend()
+plt.show()
 
 # plt.plot(wnorm, (II/plank_Ishape)[-1, :, -1], 'b', label='$I$')
 # plt.plot(wnorm, (QQ/II)[-1, :, -1], 'r', label='$Q/I$')
@@ -290,13 +296,13 @@ plt.xlim(5,-16)
 plt.ylabel(r'$\Lambda^0_0$')
 plt.show()
 
-plt.plot(error, label='Jacobi iteration')
-plt.plot(error_2, label=r'$\Lambda$ iteration')
-plt.yscale('log')
-plt.ylabel(r'$R_c(S^0_0$)')
-plt.xlabel('itteration')
-plt.legend()
-plt.show()
+# plt.plot(error, label='Jacobi iteration')
+# plt.plot(error_2, label=r'$\Lambda$ iteration')
+# plt.yscale('log')
+# plt.ylabel(r'$R_c(S^0_0$)')
+# plt.xlabel('itteration')
+# plt.legend()
+# plt.show()
 
 
 # plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
