@@ -8,7 +8,7 @@ T = 5778                            # T (isotermic) of the medium (not used yet)
 
 zl = -15 #-np.log(1e7)                  # lower boundary optically thick
 zu = 9 #-np.log(1e-3)                   # upper boundary optically thin
-dz = 1                                  # stepsize
+dz = .1                                  # stepsize
 
 w_normaliced = True
 
@@ -20,15 +20,15 @@ if not w_normaliced:
     dw = (wu-wl)/150                    # points to sample the spectrum
 else:
     # parameters for the already normalice wavelengths
-    wl = -5
-    wu = 5
+    wl = -7
+    wu = 7
     w0 = 0
-    dw = 0.5
+    dw = 0.1
 
 
-qnd = 8                            # nodes in the gaussian quadrature (# dirs) (odd number)
+qnd = 9                            # nodes in the gaussian quadrature (# dirs) (odd number)
 
-a = 1e-3                            # dumping Voigt profile a=gam/(2^1/2*sig)
+a = 1e-5                            # dumping Voigt profile a=gam/(2^1/2*sig)
 r = 1e-12                           # XCI/XLI
 eps = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col = 0                       # Depolirarization colisions (delta)
