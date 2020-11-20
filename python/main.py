@@ -4,22 +4,20 @@
 #############################################################################
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.integrate as integ
 from tqdm import tqdm,trange
-# local imports of constants parameters and functions
-import constants as cte
 import parameters as pm
 import physical_functions as func
-from jsymbols import jsymbols
 import gaussian_quadrature as gauss
-jsymbols = jsymbols()
+# from jsymbols import jsymbols
+# jsymbols = jsymbols()
 
-#  ------------------- FUNCTIONS FOR THE SOLVE METHOD --------------------------
-
-
+#############################################################################
+#                   SUBROUTINES TO SOLVE THE PROBLEM                        #
+#############################################################################
 def psi_calc(deltaum, deltaup, mode='quadratic'):
     """
-    Compute of the psi coefficients in the SC method
+    Compute of the psi coefficients in the SC method given the deltatau's
+    and the mode of the SI suposition: 'quadratic' or 'lineal'
     """
     U0 = 1 - np.exp(-deltaum)
     to_taylor = deltaum < 1e-3
@@ -45,6 +43,9 @@ def psi_calc(deltaum, deltaup, mode='quadratic'):
 def RTE_SC_solve(I, Q, SI, SQ, tau, mu):
     """
     Compute the new intensities form the source function with the SC method
+    with a specified directions (mus) and optical depths (tau) wich are an 
+    array of length nw (dimension of frequency's) and nz x nw matrix (as the
+    tau depends on the height and the frequency)
     """
 
     l_st = np.zeros_like(I)
@@ -92,6 +93,10 @@ def RTE_SC_solve(I, Q, SI, SQ, tau, mu):
 
 
 def trapezoidal(y,x, axis=-1):
+    """
+    Function to integrate a array (1D or 2D in the last dimension) with the
+    cumulative trapezoidal method given the x cordinates and the y values at those points.
+    """
     h = x[1:] - x[:-1]
 
     if axis==0:
@@ -102,6 +107,11 @@ def trapezoidal(y,x, axis=-1):
             I[i] = np.sum((y[i,:-1] + y[i,1:])*h/2)
 
     return I
+
+#############################################################################
+#                   COMPUTATION OF THE PROFILES                             #
+#                   AUTHOR: ANDRES VICENTE AREVALO                          #
+#############################################################################
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
 # plane-parallel atmosfere and axial-simetry)
@@ -180,36 +190,29 @@ if pm.initial_plots:
 t = trange(pm.max_iter, desc='Iterations:', leave=True)
 for itt in t:
     # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
-    # print('Solving the Radiative Transpor Equations')
     II, QQ, lambd = RTE_SC_solve(II, QQ, SI, SQ, tau_shape[:,:,-1], mus)
     
-    if np.min(II) < -1e5:
+    if np.min(II) < 0:
         print('found a negative intensity, stopping')
         break
 
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
-    # print('computing the components of the radiative tensor')
 
     Jm00 = 1/2. * np.sum(II*weigths_shape, axis=-1)
     Jm00 = trapezoidal(phy_shape[:,:,0]*Jm00, wnorm)
-    # Jm00 = integ.simps(phy_shape[:,:,0]*Jm00, wnorm)
 
     Jm02 = (3*mu_shape**2 - 1)*II + 3*(mu_shape**2 - 1)*QQ
     Jm02 = 1/np.sqrt(4**2 * 2) * np.sum(Jm02*weigths_shape, axis=-1)
     Jm02 = trapezoidal( phy_shape[:,:,0]*Jm02, wnorm)
-    # Jm02 =  integ.simps( phy_shape[:,:,0]*Jm02, wnorm)
 
-    lambd = 1/2. * np.sum(lambd*weigths_shape, axis=-1)
+    lambd = 1/2. * np.sum(rr*lambd*weigths_shape, axis=-1)
     lambd = trapezoidal( phy_shape[:,:,0] * lambd, wnorm)
-    # lambd = integ.simps( phy_shape[:,:,0] * lambd, wnorm)
     
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     Jm02_shape = np.repeat(np.repeat(Jm02[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
     lambd = np.repeat(np.repeat(lambd[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
 
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
-    # print('Computing the source function to close the loop and solve the ETR again')
-    # computing Jm00 and Jm02 with tensor shape as the rest of the variables
 
     S00_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
     S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col) * w2jujl * Jm02_shape
@@ -221,17 +224,13 @@ for itt in t:
     SI_new = rr*SLI + (1 - rr)*plank_Ishape
     SQ_new = rr*SLQ
 
-    # Applying the lambda operator to accelerate the convergence
-    # SI_new = (SI_new - SI)/(1 - (1-pm.eps)*lambd) + SI
-
-    # print('Computing the differences and reasign the intensities')
     olds = np.array([SI])
     news = np.array([SI_new])
     SI = SI_new.copy()
     S00 = S00_new.copy()
     SQ = SQ_new.copy()
     tol = np.max(np.abs(np.abs(olds - news)/(olds+1e-200)))
-    # print('Actual tolerance is :',tol)
+
     t.set_description('Actual tolerance is : %1.3e' % tol)
     t.refresh() # to show immediately the update
 

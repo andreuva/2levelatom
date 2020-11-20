@@ -118,18 +118,7 @@ int main() {
               
         RTE_SC_solve(II, QQ, SI, SQ, lambda, taus, mus);
 
-        /* Check for negative intensities to stop and report a problem */
-        for (i = 0; i < nz; i++){ 
-            for (j = 0; j < nw; j++){
-                for (k = 0; k < qnd; k++){
-                    if( II[i][j][k] < 0 ){
-                        fprintf(stdout,"Found a negative intensity at: i: %i j: %i k: %i.",i,j,k); 
-                        fprintf(stdout,"with value: %1.3e.  Stopping.\n", II[i][j][k]);
-                        return 0;
-                    }
-                }                
-            }
-        }
+        // for (i = 0; i < nz; i++){ fprintf(stdout,"%f \n", II[i][0][0]);}
         
         /* -------------------      COMPUTE THE J    -----------------------*/
 

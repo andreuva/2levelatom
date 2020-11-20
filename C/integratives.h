@@ -44,3 +44,33 @@ and weights of the Gauss-Legendre n-point quadrature formula.
 		w[n-i]=w[i-1];                 /* and its symmetric counterpart. */
 	}
 }
+
+
+/*******************************************************************************
+Integrate a 1D array by the gaussian quadrature given the weights and the 
+array of points in the quadrature abcises + dimension of the array
+Author: Andres Vicente Arevalo 
+*******************************************************************************/
+double num_gaus_quad(double y[], double weigths[], int nn){
+    double result = 0.;
+
+    for (int i = 0; i < nn; i++){
+        result = result + y[i]*weigths[i];
+    }
+
+    return result;    
+}
+
+
+/*******************************************************************************
+Integrate a 1D array by the composite trapezoidal rule
+Author: Andres Vicente Arevalo 
+*******************************************************************************/
+double trapezoidal(double y[], double x[], int n){
+    double Integral = 0.;
+
+    for (int i = 1; i < n; i++){
+        Integral = Integral + (y[i-1] + y[i])*(x[i]-x[i-1])/2.;
+    }
+    return Integral;
+}
