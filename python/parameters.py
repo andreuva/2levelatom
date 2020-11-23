@@ -20,8 +20,8 @@ if not w_normaliced:
     dw = (wu-wl)/150                    # points to sample the spectrum
 else:
     # parameters for the already normalice wavelengths
-    wl = -7
-    wu = 7
+    wl = -10
+    wu = 10
     w0 = 0
     dw = 0.25
 
@@ -33,7 +33,6 @@ r = 1e-2                          # XCI/XLI
 eps = 1e-4                        # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col = 0                       # Depolirarization colisions (delta)
 Hd = 1                            # Hanle depolarization factor [1/5, 1]
-
 
 ju = 1
 jl = 0

@@ -189,6 +189,8 @@ def solve_profiles( a, r, eps, dep_col, Hd):
         
         if np.min(II) < 0:
             print('found a negative intensity, stopping')
+            print('Bad parameters:')
+            print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
             break
 
         # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
