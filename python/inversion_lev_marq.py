@@ -20,12 +20,11 @@ def add_noise(array, sigma):
     return array
 
 
-def chi2(params, std, w_I, w_Q):
+def chi2(a, r, eps, dep_col, Hd, std, w_I, w_Q):
     '''
     Compute the cost function of the inversion given the parameters, the noise
     and weigths of the diferent components (I,Q...)
     '''
-    a, r, eps, dep_col, Hd = params
 
     # print("\n New parameters: ")
     # print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
@@ -38,11 +37,11 @@ def chi2(params, std, w_I, w_Q):
     return chi2
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-8      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-8      #1,1e-4   ,1e-10                 # XCI/XLI
-eps_sol = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
+a_sol = 1e-4      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-6      #1,1e-4   ,1e-10                 # XCI/XLI
+eps_sol = 1e-1                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col_sol = 0             #0.1          # Depolirarization colisions (delta)
-Hd_sol = 0.75                  #1          # Hanle depolarization factor [1/5, 1]
+Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
 
 print(" Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
@@ -53,7 +52,7 @@ if(np.min(I_sol) < 0):
     print('Bad solution parameters, stopping.')
     exit()
 
-std = 2e-6
+std = 1e-8
 I_sol = add_noise(I_sol, std)
 Q_sol = add_noise(Q_sol, std)
 
@@ -76,21 +75,21 @@ I_initial, Q_initial = fs.solve_profiles(a, r, eps, dep_col, Hd)
 
 ##########  MINIMIZE THE CHI2 FUNCTION WITH GIVEN RANGE CONSTRAINS #########
 x0 = np.array([a,r,eps,dep_col,Hd])
-xl = [1e-4,1e-12,1e-4,0,0.2]
-xu = [1,1,1,10,1]
-bounds = Bounds(xl,xu)
-result = opt.minimize(chi2,x0, bounds=bounds, args=(std, w_I, w_Q))
+xl = np.array([1e-4,1e-12,1e-4,0,0.2])
+xu = np.array([1,1,1,10,1])
+chi2_0 = chi2(a, r, eps, dep_col, Hd, std, w_I, w_Q)
 
 
+a_res, r_res, eps_res, dep_col_res, Hd_res = a, r, eps, dep_col, Hd
 ##### PRINT AND PLOT THE SOLUTION AND COMPARE IT TO THE INITIAL AND OBSERVED PROFILES ####
 print('\nFound Parameters - Solution parameters:')
-print('a_result     = %1.2e \t a_solution     = %1.2e' % (result.x[0], a_sol))
-print('r_result     = %1.2e \t r_solution     = %1.2e' % (result.x[1], r_sol) )
-print('eps_result   = %1.2e \t eps_solution   = %1.2e' % (result.x[2], eps_sol) )
-print('delta_result = %1.2e \t delta_solution = %1.2e' % (result.x[3], dep_col_sol) )
-print('Hd_result    = %1.2e \t Hd_solution    = %1.2e' % (result.x[4], Hd_sol) )
+print('a_result     = %1.2e \t a_solution     = %1.2e' % (a_res, a_sol))
+print('r_result     = %1.2e \t r_solution     = %1.2e' % (r_res, r_sol) )
+print('eps_result   = %1.2e \t eps_solution   = %1.2e' % (eps_res, eps_sol) )
+print('delta_result = %1.2e \t delta_solution = %1.2e' % (dep_col_res, dep_col_sol) )
+print('Hd_result    = %1.2e \t Hd_solution    = %1.2e' % (Hd_res, Hd_sol) )
 
-I_res, Q_res = fs.solve_profiles(result.x[0], result.x[1], result.x[2], result.x[3], result.x[4])
+I_res, Q_res = fs.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res)
 
 plt.plot((I_sol)[-1, :, -1], 'ok', label=r'$I/B_{\nu}$ "observed"')
 plt.plot((I_initial)[-1, :, -1], 'r', label=r'$I/B_{\nu}$ initial')
