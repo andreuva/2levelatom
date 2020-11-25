@@ -4,8 +4,6 @@
 #############################################################################
 import numpy as np
 import scipy.special as special
-import constants as cte
-
 
 def gaussian(x, sigma, x0=0):
     """ Return Gaussian line shape at x with a given sigma centred at x0 """
@@ -51,34 +49,3 @@ def voigt(v, a):
                     u*(.1841439e1 - u))))))
                 t = np.exp(u) - x/y
     return t
-
-
-def voigt_custom(x, sigma, gamma, x0=0):
-    """
-    Return the Voigt line shape at x with Lorentzian component gamma
-    and Gaussian component sigma.
-    """
-    return np.real(special.wofz(((x-x0) + 1j*gamma)/sigma/np.sqrt(2))) \
-        / sigma / np.sqrt(2*np.pi)
-
-
-def plank_nu(nu, T):
-    """
-    Return the Plank function at a given temperature and frequency (IS)
-    """
-    return (2*cte.h*nu**3)/(cte.c**2) * (1/(np.exp(cte.h*nu/(cte.kb*T)) - 1))
-
-
-def plank_wien(nu, T):
-    """
-    Return the Wien aproximation to the plank function
-    """
-    return (2*cte.h*nu**3)/(cte.c**2) * np.exp(- cte.h*nu/(cte.kb*T))
-
-
-def plank_lamb(lamb, T):
-    """
-    Return the Plank function at a given temperature and wavelength (IS)
-    """
-    return (2*cte.h*cte.c**2)/(lamb**5) * \
-        (1/(np.exp(cte.h*cte.c/(lamb*cte.kb*T)) - 1))

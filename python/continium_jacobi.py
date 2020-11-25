@@ -7,8 +7,7 @@ import numpy as np
 import scipy.integrate as integ
 from tqdm import tqdm
 # local imports of constants parameters and functions
-import constants as cte
-import parameters as pm
+import parameters_continium_jacobi as pm
 import physical_functions as func
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a

@@ -128,12 +128,9 @@ def solve_profiles( a, r, eps, dep_col, Hd):
     zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 
     # Define the grid in frequencies ( or wavelengths )
-    if pm.w_normaliced:
-        ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
-        wnorm = ww.copy()
-    else:
-        ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # Compute the 1D spectral grid
-        wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
+
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
+    wnorm = ww.copy()
 
     # Define the directions of the rays
     if pm.qnd%2 != 0:

@@ -29,7 +29,7 @@ time2 = time.time() - time1
 print("py running time in seconds:", time2)
 py_time = time2
 
-lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/python/c_python_integration/forward_solver.so")
+lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/c_python_integration/forward_solver.so")
 solve_profiles = lib.solve_profiles
 solve_profiles.restype = ndpointer(dtype=c_double , shape=(nz*nw*qnd*2,))
 

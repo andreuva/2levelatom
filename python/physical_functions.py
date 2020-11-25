@@ -4,8 +4,7 @@
 #############################################################################
 import numpy as np
 import scipy.special as special
-import constants as cte
-
+import parameters as pm
 
 def gaussian(x, sigma, x0=0):
     """ Return Gaussian line shape at x with a given sigma centred at x0 """
@@ -66,19 +65,19 @@ def plank_nu(nu, T):
     """
     Return the Plank function at a given temperature and frequency (IS)
     """
-    return (2*cte.h*nu**3)/(cte.c**2) * (1/(np.exp(cte.h*nu/(cte.kb*T)) - 1))
+    return (2*pm.h*nu**3)/(pm.c**2) * (1/(np.exp(pm.h*nu/(pm.kb*T)) - 1))
 
 
 def plank_wien(nu, T):
     """
     Return the Wien aproximation to the plank function
     """
-    return (2*cte.h*nu**3)/(cte.c**2) * np.exp(- cte.h*nu/(cte.kb*T))
+    return (2*pm.h*nu**3)/(pm.c**2) * np.exp(- pm.h*nu/(pm.kb*T))
 
 
 def plank_lamb(lamb, T):
     """
     Return the Plank function at a given temperature and wavelength (IS)
     """
-    return (2*cte.h*cte.c**2)/(lamb**5) * \
-        (1/(np.exp(cte.h*cte.c/(lamb*cte.kb*T)) - 1))
+    return (2*pm.h*pm.c**2)/(lamb**5) * \
+        (1/(np.exp(pm.h*pm.c/(lamb*pm.kb*T)) - 1))
