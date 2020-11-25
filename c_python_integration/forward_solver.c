@@ -114,7 +114,10 @@ double * solve_profiles(float a,float r, float eps, float dep_col, float Hd) {
         for (i = 0; i < nz; i++){
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                    if(II[i][j][k] < 0){
+                    if(II[i][j][k] < -1e-4){
+                        fprintf(stdout,"fs.c found a negative intensity, stopping\n\
+Bad parameters:\n a = %1.3e\n r = %1.3e\n eps = %1.3e\n delta = %1.3e\n \
+Hd = %1.3e\n", a, r, eps, dep_col, Hd);
                         goto wrapup;
                     }
                 }
@@ -197,11 +200,8 @@ double * solve_profiles(float a,float r, float eps, float dep_col, float Hd) {
     }
 
     wrapup:
-        fprintf(stdout,"found a negative intensity, stopping\n\
-Bad parameters:\n a = %1.3e\n r = %1.3e\n eps = %1.3e\n delta = %1.3e\n \
-Hd = %1.3e\n", a, r, eps, dep_col, Hd);
 
-    // fprintf(stdout,"\n----------------- FINISHED ------------------\n");
+    fprintf(stdout,"\n");
     int index_I, index_Q;
 
     for (i = 0; i < nz; i++)

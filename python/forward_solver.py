@@ -187,7 +187,7 @@ def solve_profiles( a, r, eps, dep_col, Hd):
         # ----------------- SOLVE RTE BY THE SHORT CHARACTERISTICS ---------------------------
         II, QQ, lambd = RTE_SC_solve(II, QQ, SI, SQ, tau_shape[:,:,-1], mus)
         
-        if np.min(II) < 0:
+        if np.min(II) < -1e-4:
             print('found a negative intensity, stopping')
             print('Bad parameters:')
             print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
