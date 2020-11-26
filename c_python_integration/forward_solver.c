@@ -204,20 +204,15 @@ Hd = %1.3e\n", a, r, eps, dep_col, Hd);
     fprintf(stdout,"\n");
     int index_I, index_Q;
 
-    for (i = 0; i < nz; i++)
-    {
-        for (j = 0; j < nw; j++)
-        {
-            for (k = 0; k < qnd; k++)
-            {
+    for (i = 0; i < nz; i++){
+        for (j = 0; j < nw; j++){
+            for (k = 0; k < qnd; k++){
                 index_I = i*nw*qnd + j*qnd + k;
                 index_Q = nz*nw*qnd + i*nw*qnd + j*qnd + k;
                 result[index_I] = II[i][j][k];
                 result[index_Q] = QQ[i][j][k];
             }
-            
         }
-        
     }
     
     return result;

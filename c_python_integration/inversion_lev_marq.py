@@ -27,7 +27,7 @@ def chi2(params , std, w_I, w_Q):
 
     # print("\n New parameters: ")
     # print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
-    print("\n Computing the new profiles:")
+    print("\nComputing the new profiles:")
 
     I,Q = fs.solve_profiles(a, r, eps, dep_col, Hd)
     chi2 = np.sum(w_I*(I-I_sol)**2 + w_Q*(Q-Q_sol)**2)/(2*I.size*std**2)
@@ -86,7 +86,8 @@ if(np.min(I_sol) < 0):
 ##############  INITIALICE THE PARAMETERS AND ADD NOISE TO "OBSERVED" #########
 w_I = 1
 w_Q = 1e2
-h = 1e-8
+h = 1e-6
+max_itter = 2000
 
 std = 1e-8
 I_sol = add_noise(I_sol, std)
@@ -109,14 +110,72 @@ x_u = np.array([1,1,1,10,1])
 chi2_0, I_0, Q_0 = chi2(x_0, std, w_I, w_Q)
 
 # initial guess of the lambda parameter
-lambd = 0.001
+lambd = 1e-5
+new_point = True
+solutions = []
 
+for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
-xs = surroundings(x_0, h)
+    
+    if new_point:
+        xs = surroundings(x_0, h)
+        alpha, beta = compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q)
+        print("\nNew parameters: ")
+        print(f" a = {x_0[0]}\n r = {x_0[1]}\n eps = {x_0[2]}\n delta = {x_0[3]}\n Hd = {x_0[4]}\n")
 
-alpha, beta = compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q)
 
-a_res, r_res, eps_res, dep_col_res, Hd_res = a, r, eps, dep_col, Hd
+
+    for i in range(len(alpha)):
+        alpha[i,i] = alpha[i,i] * (1 + lambd)
+
+    deltas = np.linalg.solve(alpha, beta)
+
+    for i in range(len(x_0)):
+        if x_0[i] + deltas[i] > x_u[i]:
+            deltas[i] = x_u[i] - x_0[i]
+        elif x_0[i] + deltas[i] < x_l[i]:
+            deltas[i] = x_l[i] - x_0[i]
+        else:
+            pass
+
+    chi2_1, I_1, Q_1 = chi2(x_0+deltas, std, w_I, w_Q)
+
+    if chi2_1 >= chi2_0:
+        lambd = lambd*10
+        new_point = False
+
+        if lambd > 1e20:
+            if chi2_1 < 1e3:
+                break
+            else:
+                lambd = 1e-5
+                
+                solutions.append( [x_0, chi2_1] )
+                if len(solutions) > 3:
+                    break
+
+                print('Solution has been stuck for some iterations.')
+                print('restarting with new parameters')
+                a = random.uniform(1e-10,1)
+                r = random.uniform(1e-15,1)
+                eps = random.uniform(1e-4,1)
+                dep_col = random.uniform(0,10)
+                Hd = random.uniform(1/5, 1)
+                x_0 = np.array([a,r,eps,dep_col,Hd])
+                new_point = True
+
+                chi2_0, I_0, Q_0 = chi2(x_0, std, w_I, w_Q)
+                
+                xs = surroundings(x_0, h)
+    else:
+        lambd = lambd/10
+        x_0 = x_0 + deltas
+        chi2_0 = chi2_1
+        I_0 = I_1
+        Q_0 = Q_1
+        new_point = True
+
+a_res, r_res, eps_res, dep_col_res, Hd_res = x_0
 ##### PRINT AND PLOT THE SOLUTION AND COMPARE IT TO THE INITIAL AND OBSERVED PROFILES ####
 print("Computing the initial and final profiles:")
 I_initial, Q_initial = fs.solve_profiles(a, r, eps, dep_col, Hd)

@@ -2,45 +2,29 @@
 *        2 LEVEL ATOM ATMOSPHERE SOLVER                        *
 *         AUTHOR: ANDRES VICENTE AREVALO                       *
 ****************************************************************/
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <complex.h>
-#include "integratives.h"
-#include "params.h"
-#include "subroutines.c"
 
 /* -------------------------------------------------------------------*/
-/* ------------------------- MAIN PROGRAM ----------------------------*/
+/* --------------- SUBROUTINE TO SOLVE THE PROFILES ------------------*/
 /* -------------------------------------------------------------------*/
-int main() {
+void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double I_res[nz][nw][qnd], double Q_res[nz][nw][qnd]) {    
     
-    
-    // char var[128],eq[1];
-    // double test1,test2;
-
-    // fscanf(stdin,"%*s %*s %lf", &test1 );
-    // fscanf(stdin,"%*s %*s %lf", &test2 );
-    // fprintf(stdout, "variable de salida: %e %e ", test1, test2);
-    
-    
-    fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
-    fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
-    fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
-    fprintf(stdout, "resolution in the z axis:                          %1.3e \n", dz);
-    fprintf(stdout, "total number of points in z:                       %i    \n", nz);
-    fprintf(stdout, "lower/upper frequency limit :                      %1.3e   %1.3e \n", wl, wu);
-    fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
-    fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
-    /*fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);*/
-    fprintf(stdout, "dumping Voigt profile:                             %f \n", a);
-    fprintf(stdout, "line strength XCI/XLI:                             %f \n", r);
-    fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %f \n", eps);
-    fprintf(stdout, "Depolirarization colisions (delta):                %f \n", dep_col);
-    fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %f \n", Hd);
-    fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);
-    fprintf(stdout, "Tolerance for finding the solution:                %f \n", tolerance);
-    fprintf(stdout, "------------------------------------------------------------------\n\n");
+    // fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
+    // fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
+    // fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
+    // fprintf(stdout, "resolution in the z axis:                          %1.3e \n", dz);
+    // fprintf(stdout, "total number of points in z:                       %i    \n", nz);
+    // fprintf(stdout, "lower/upper frequency limit :                      %1.3e   %1.3e \n", wl, wu);
+    // fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
+    // fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
+    // /*fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);*/
+    // fprintf(stdout, "dumping Voigt profile:                             %f \n", a);
+    // fprintf(stdout, "line strength XCI/XLI:                             %f \n", r);
+    // fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %f \n", eps);
+    // fprintf(stdout, "Depolirarization colisions (delta):                %f \n", dep_col);
+    // fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %f \n", Hd);
+    // fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);
+    // fprintf(stdout, "Tolerance for finding the solution:                %f \n", tolerance);
+    // fprintf(stdout, "------------------------------------------------------------------\n\n");
 
 
     int i,j,k,l,m;               /* define the integers to count the loops*/
@@ -118,7 +102,18 @@ int main() {
               
         RTE_SC_solve(II, QQ, SI, SQ, lambda, taus, mus);
 
-        // for (i = 0; i < nz; i++){ fprintf(stdout,"%f \n", II[i][0][0]);}
+        /* Check for negative intensities to stop and report a problem */
+        for (i = 0; i < nz; i++){ 
+            for (j = 0; j < nw; j++){
+                for (k = 0; k < qnd; k++){
+                    if( II[i][j][k] < -1e-4 ){
+                        fprintf(stdout,"Found a negative intensity at: i: %i j: %i k: %i.",i,j,k); 
+                        fprintf(stdout,"with value: %1.3e.  Stopping.\n", II[i][j][k]);
+                        goto wrapup;
+                    }
+                }                
+            }
+        }
         
         /* -------------------      COMPUTE THE J    -----------------------*/
 
@@ -176,7 +171,7 @@ int main() {
             }
         }
         
-        printf("iteration: %i, Actual tolerance is :  %1.2e \n",l, mrc);
+        // printf("iteration: %i, Actual tolerance is :  %1.2e \n",l, mrc);
         if (mrc < tolerance){
             break;
         }
@@ -194,7 +189,16 @@ int main() {
         }        
     }
 
-    fprintf(stdout,"\n----------------- FINISHED ------------------\n");
+    wrapup:
+    for (i = 0; i < nz; i++){
+        for (j = 0; j < nw; j++){
+            for (k = 0; k < qnd; k++){
+                I_res[i][j][k] = II[i][j][k];
+                Q_res[i][j][k] = QQ[i][j][k];
+            }
+        }
+    }
+    // fprintf(stdout,"\n----------------- FINISHED ------------------\n");
 
-    return 0;
+    return;
 }

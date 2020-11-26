@@ -13,16 +13,7 @@
 /* -------------------------------------------------------------------*/
 /* ------------------------- MAIN PROGRAM ----------------------------*/
 /* -------------------------------------------------------------------*/
-int main() {
-    
-    
-    // char var[128],eq[1];
-    // double test1,test2;
-
-    // fscanf(stdin,"%*s %*s %lf", &test1 );
-    // fscanf(stdin,"%*s %*s %lf", &test2 );
-    // fprintf(stdout, "variable de salida: %e %e ", test1, test2);
-    
+int main() {    
     
     fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
     fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
@@ -122,7 +113,7 @@ int main() {
         for (i = 0; i < nz; i++){ 
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                    if( II[i][j][k] < 0 ){
+                    if( II[i][j][k] < -1e-4 ){
                         fprintf(stdout,"Found a negative intensity at: i: %i j: %i k: %i.",i,j,k); 
                         fprintf(stdout,"with value: %1.3e.  Stopping.\n", II[i][j][k]);
                         return 0;
