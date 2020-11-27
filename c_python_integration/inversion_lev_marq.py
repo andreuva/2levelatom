@@ -18,7 +18,7 @@ def add_noise(array, sigma):
     return array
 
 
-def chi2(params , std, w_I, w_Q):
+def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu):
     '''
     Compute the cost function of the inversion given the parameters, the noise
     and weigths of the diferent components (I,Q...)
@@ -27,13 +27,15 @@ def chi2(params , std, w_I, w_Q):
 
     # print("\n New parameters: ")
     # print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
-    print("\nComputing the new profiles:")
+    print("\n Computing the new profiles:")
 
     I,Q = fs.solve_profiles(a, r, eps, dep_col, Hd)
-    chi2 = np.sum(w_I*(I-I_sol)**2 + w_Q*(Q-Q_sol)**2)/(2*I.size*std**2)
+    I_obs = I[-1,:,mu].copy()
+    Q_obs = Q[-1,:,mu].copy()
+    chi2 = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
 
     print(f'Chi^2 of this profiles is: {np.max(np.abs(chi2))} ' )
-    return chi2, I, Q
+    return chi2, I_obs, Q_obs
 
 def surroundings(x_0, h):
 
@@ -45,7 +47,7 @@ def surroundings(x_0, h):
 
     return surroundings
 
-def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q):
+def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
 
     Is = np.zeros( (x_0.size, *I_sol.shape) )
     Qs = np.zeros( (x_0.size, *Q_sol.shape) )
@@ -56,7 +58,8 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q):
     alpha = np.zeros( (x_0.size, x_0.size) )
     
     for i in range(len(xs)):
-        Is[i], Qs[i] = fs.solve_profiles( *xs[i] )
+        I, Q = fs.solve_profiles( *xs[i] )
+        Is[i], Qs[i] = I[-1,:,mu].copy(), Q[-1,:,mu].copy()
         dI[i] = (I_sol - Is[i])/h
         dQ[i] = (Q_sol - Qs[i])/h
 
@@ -74,10 +77,13 @@ eps_sol = 1e-1                          # Phot. dest. probability (LTE=1,NLTE=1e
 dep_col_sol = 0             #0.1          # Depolirarization colisions (delta)
 Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
 
+mu = -5 #int(fs.pm.qnd/2)
+
 print("Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
 print("Computing the solution profiles:")
 I_sol, Q_sol = fs.solve_profiles(a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol)
+I_sol, Q_sol = I_sol[-1,:,mu].copy(), Q_sol[-1,:,mu].copy()
 
 if(np.min(I_sol) < 0):
     print('Bad solution parameters, stopping.')
@@ -107,7 +113,7 @@ x_0 = np.array([a,r,eps,dep_col,Hd])
 x_l = np.array([1e-4,1e-12,1e-4,0,0.2])
 x_u = np.array([1,1,1,10,1])
 
-chi2_0, I_0, Q_0 = chi2(x_0, std, w_I, w_Q)
+chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
 
 # initial guess of the lambda parameter
 lambd = 1e-5
@@ -119,7 +125,7 @@ for itt in range(max_itter):
     
     if new_point:
         xs = surroundings(x_0, h)
-        alpha, beta = compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q)
+        alpha, beta = compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu)
         print("\nNew parameters: ")
         print(f" a = {x_0[0]}\n r = {x_0[1]}\n eps = {x_0[2]}\n delta = {x_0[3]}\n Hd = {x_0[4]}\n")
 
@@ -138,7 +144,7 @@ for itt in range(max_itter):
         else:
             pass
 
-    chi2_1, I_1, Q_1 = chi2(x_0+deltas, std, w_I, w_Q)
+    chi2_1, I_1, Q_1 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
 
     if chi2_1 >= chi2_0:
         lambd = lambd*10
@@ -164,7 +170,7 @@ for itt in range(max_itter):
                 x_0 = np.array([a,r,eps,dep_col,Hd])
                 new_point = True
 
-                chi2_0, I_0, Q_0 = chi2(x_0, std, w_I, w_Q)
+                chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
                 
                 xs = surroundings(x_0, h)
     else:
