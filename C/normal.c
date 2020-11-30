@@ -105,6 +105,28 @@ void printHistogram(double* values, int n)
         free(bins);
     }
 }
+
+void add_noise(int nz, int nw, int qnd, double array[nz][nw][qnd], double std){
+    
+    int i, j, k, index;
+    double* normal_noise;
+
+    // initialice the random number generator
+    srand((unsigned int)time(NULL));
+    normal_noise = generate(nz*nw*qnd);
+
+    for (i = 0; i < nz; i++){
+        for (j = 0; j < nw; j++){
+            for (k = 0; k < qnd; k++){
+                index = i*nw*qnd + j*qnd + k ;
+                normal_noise[ index ] = normal_noise[index] * std;
+                array[i][j][k] = array[i][j][k] + normal_noise[index];
+
+            }
+        }
+    }
+    return;
+}
  
  
 int main(void)

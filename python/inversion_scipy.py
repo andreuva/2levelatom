@@ -40,16 +40,16 @@ def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu):
     return chi2
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-8      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-6         #1,1e-4   ,1e-10                 # XCI/XLI
-eps_sol = 1e-3                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
+a_sol = 1e-6      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-2         #1,1e-4   ,1e-10                 # XCI/XLI
+eps_sol = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col_sol = 0             #0.1          # Depolirarization colisions (delta)
 Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
 
 std = 1e-6
 w_I = 1e-2
 w_Q = 1e2
-mu = -5 #int(fs.pm.qnd/2)
+mu = -6 #int(fs.pm.qnd/2)
 
 print(" Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
@@ -87,7 +87,7 @@ Q_obs_initial = Q_initial[-1,:,mu].copy()
 
 ##########  MINIMIZE THE CHI2 FUNCTION WITH GIVEN RANGE CONSTRAINS #########
 x0 = np.array([a,r,eps,dep_col,Hd])
-xl = [1e-4,1e-12,1e-4,0,0.2]
+xl = [1e-12,1e-12,1e-5,0,0.2]
 xu = [1,1,1,10,1]
 bounds = Bounds(xl,xu)
 result = opt.minimize(chi2,x0, bounds=bounds, args=(I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu))
