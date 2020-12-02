@@ -5,11 +5,13 @@
 zl = -15                                   # lower boundary optically thick
 zu = 9                                     # upper boundary optically thin
 dz = 0.75                                  # stepsize
+nz = int((zu-zl)/dz + 1)
 
-wl = -10
-wu = 10
+wl = -7
+wu = 7
 w0 = 0
-dw = 0.25
+dw = 0.5
+nw = int((wu-wl)/dw + 1)
 
 qnd = 14                          # nodes in the gaussian quadrature (# dirs) (odd number)
 

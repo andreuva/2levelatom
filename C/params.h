@@ -11,10 +11,10 @@ const float zu = 9; /*-log(1e-3);           /* optical thicknes of the upper bou
 const float dz = 0.75;                         /* (zu-zl)/(nz-1); */
 const short nz = (zu-zl)/dz + 1;                        /* # number of points in the z axes */
 
-const float wl = -10; /*c/(502e-9);          /* # lower/upper frequency limit (lambda in nm) */
-const float wu = 10;                         /*c/(498e-9);
+const float wl = -7; /*c/(502e-9);          /* # lower/upper frequency limit (lambda in nm) */
+const float wu = 7;                         /*c/(498e-9);
 /*const float w0 =  c/(500e-9);*/           /* wavelength of the transition (nm --> hz) */
-const float dw = 0.25;                       /* (wu-wl)/(nw-1); */
+const float dw = 0.5;                       /* (wu-wl)/(nw-1); */
 const short nw = (wu-wl)/dw + 1;                /* # points to sample the spectrum */
 
 const short qnd = 14;                        /* # nodes in the gaussian quadrature (# dirs) (odd) */

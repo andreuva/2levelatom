@@ -5,6 +5,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import forward_solver_py  as fs
+from parameters import nw,nz,qnd
+from ctypes import c_void_p ,c_double, c_int, c_float, cdll
+from numpy.ctypeslib import ndpointer
 import random
 
 ##########################     SUBROUTINES     ##############################
@@ -79,7 +82,12 @@ eps_sol = 1e-2                          # Phot. dest. probability (LTE=1,NLTE=1e
 dep_col_sol = 1             #0.1          # Depolirarization colisions (delta)
 Hd_sol = .2                  #1          # Hanle depolarization factor [1/5, 1]
 
-mu = 9 #int(fs.pm.qnd/2)
+mu = -6 #int(fs.pm.qnd/2)
+
+# Load the library needed to solve the profiles with the C routine
+lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/c_python_integration/forward_solver.so")
+solve_profiles = lib.solve_profiles
+solve_profiles.restype = ndpointer(dtype=c_double , shape=(nz*nw*qnd*2,))
 
 print("Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
@@ -95,16 +103,12 @@ if(np.min(I_sol) < 0):
 ##############  INITIALICE THE PARAMETERS AND ADD NOISE TO "OBSERVED" #########
 w_I = 1e-1
 w_Q = 1e2
-h = 1e-8
+h = 1e-10
 max_itter = 100
-std = 1e-5
-# initial guess of the lambda parameter
-lambd = 1e-5
-new_point = True
-solutions = []
 
-# I_sol = add_noise(I_sol, std)
-# Q_sol = add_noise(Q_sol, std)
+std = 1e-5
+I_sol = add_noise(I_sol, std)
+Q_sol = add_noise(Q_sol, std)
 
 random.seed(12455)
 a = random.uniform(1e-10,1)
@@ -121,6 +125,11 @@ x_l = np.array([1e-12,1e-12,1e-4,0,0.2])
 x_u = np.array([1,1,1,10,1])
 
 chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
+
+# initial guess of the lambda parameter
+lambd = 1e-5
+new_point = True
+solutions = []
 
 for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
@@ -144,40 +153,15 @@ for itt in range(max_itter):
             deltas[i] = x_u[i] - x_0[i]
         elif x_0[i] + deltas[i] < x_l[i]:
             deltas[i] = x_l[i] - x_0[i]
-        else:
-            pass
 
     chi2_1, I_1, Q_1 = chi2(x_0 + deltas, I_sol, Q_sol, std, w_I, w_Q, mu)
 
     if chi2_1 >= chi2_0:
         lambd = lambd*10
         new_point = False
-
         if lambd > 1e25:
-            if chi2_1 < 1e3:
-                break
-            else:
-                lambd = 1e-5
-                
-                break
+            break
 
-                # solutions.append( [x_0, chi2_1] )
-                # if len(solutions) > 3:
-                #     break
-
-                # print('Solution has been stuck for some iterations.')
-                # print('restarting with new parameters')
-                # a = random.uniform(1e-10,1)
-                # r = random.uniform(1e-15,1)
-                # eps = random.uniform(1e-4,1)
-                # dep_col = random.uniform(0,10)
-                # Hd = random.uniform(1/5, 1)
-                # x_0 = np.array([a,r,eps,dep_col,Hd])
-                # new_point = True
-
-                # chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
-                
-                # xs = surroundings(x_0, h)
     else:
         lambd = lambd/10
         x_0 = x_0 + deltas
