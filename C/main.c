@@ -13,7 +13,7 @@
 /* -------------------------------------------------------------------*/
 /* ------------------------- MAIN PROGRAM ----------------------------*/
 /* -------------------------------------------------------------------*/
-int main() {    
+int main() {
     
     fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
     fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
@@ -24,9 +24,9 @@ int main() {
     fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
     fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
     /*fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);*/
-    fprintf(stdout, "dumping Voigt profile:                             %f \n", a);
-    fprintf(stdout, "line strength XCI/XLI:                             %f \n", r);
-    fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %f \n", eps);
+    fprintf(stdout, "dumping Voigt profile:                             %1.3e \n", a);
+    fprintf(stdout, "line strength XCI/XLI:                             %1.3e \n", r);
+    fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %1.3e \n", eps);
     fprintf(stdout, "Depolirarization colisions (delta):                %f \n", dep_col);
     fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %f \n", Hd);
     fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);

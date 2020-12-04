@@ -2,3 +2,4 @@
 *_exec
 *.so
 *_deb
+*.npy
