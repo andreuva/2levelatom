@@ -2,28 +2,35 @@
 *        2 LEVEL ATOM ATMOSPHERE SOLVER                        *
 *         AUTHOR: ANDRES VICENTE AREVALO                       *
 ****************************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <complex.h>
+#include "integratives.h"
+#include "params.h"
+#include "subroutines.c"
 
 /* -------------------------------------------------------------------*/
 /* --------------- SUBROUTINE TO SOLVE THE PROFILES ------------------*/
 /* -------------------------------------------------------------------*/
-void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double I_res[nz][nw][qnd], double Q_res[nz][nw][qnd]) {    
+void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double I_res[][nw][qnd], double Q_res[][nw][qnd]) {    
     
     // fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
     // fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
     // fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
-    // fprintf(stdout, "resolution in the z axis:                          %1.3e \n", dz);
+    // fprintf(stdout, "resolution in the z axis:                          %1.6e \n", dz);
     // fprintf(stdout, "total number of points in z:                       %i    \n", nz);
-    // fprintf(stdout, "lower/upper frequency limit :                      %1.3e   %1.3e \n", wl, wu);
+    // fprintf(stdout, "lower/upper frequency limit :                      %1.6e   %1.6e \n", wl, wu);
     // fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
     // fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
-    // /*fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);*/
-    // fprintf(stdout, "dumping Voigt profile:                             %f \n", a);
-    // fprintf(stdout, "line strength XCI/XLI:                             %f \n", r);
-    // fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %f \n", eps);
-    // fprintf(stdout, "Depolirarization colisions (delta):                %f \n", dep_col);
-    // fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %f \n", Hd);
+    // fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);
+    // fprintf(stdout, "dumping Voigt profile:                             %1.6e \n", a);
+    // fprintf(stdout, "line strength XCI/XLI:                             %1.6e \n", r);
+    // fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %1.6e \n", eps);
+    // fprintf(stdout, "Depolirarization colisions (delta):                %1.6e \n", dep_col);
+    // fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %1.6e \n", Hd);
     // fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);
-    // fprintf(stdout, "Tolerance for finding the solution:                %f \n", tolerance);
+    // fprintf(stdout, "Tolerance for finding the solution:                %1.6e \n", tolerance);
     // fprintf(stdout, "------------------------------------------------------------------\n\n");
 
 
@@ -106,9 +113,10 @@ void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double 
         for (i = 0; i < nz; i++){ 
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
-                    if( II[i][j][k] < -1e-4 ){
-                        fprintf(stdout,"Found a negative intensity at: i: %i j: %i k: %i.",i,j,k); 
-                        fprintf(stdout,"with value: %1.3e.  Stopping.\n", II[i][j][k]);
+                    if(II[i][j][k] < -1e-4){
+                        fprintf(stdout,"fs.c found a negative intensity, stopping\n" \
+                            "Bad parameters:\n a = %1.6e\n r = %1.6e\n eps = %1.6e\n delta = %1.6e\n" \
+                            "Hd = %1.6e\n", a, r, eps, dep_col, Hd);
                         goto wrapup;
                     }
                 }                
@@ -190,6 +198,9 @@ void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double 
     }
 
     wrapup:
+
+    printf("finished in %i iterations, with tolerance:  %1.2e \n",l, mrc);
+
     for (i = 0; i < nz; i++){
         for (j = 0; j < nw; j++){
             for (k = 0; k < qnd; k++){
@@ -198,7 +209,6 @@ void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double 
             }
         }
     }
-    // fprintf(stdout,"\n----------------- FINISHED ------------------\n");
 
     return;
 }

@@ -44,6 +44,7 @@ Imax = []
 Qmax = []
 Imin = []
 Qmin = []
+errors = 0
 
 for a in a_pos:
     for r in r_pos:
@@ -54,13 +55,14 @@ for a in a_pos:
                     result = solve_profiles(c_float(a), c_float(r), c_float(eps), c_float(dep_col), c_float(Hd))
                     I_c = result[:nz*nw*pm.qnd].reshape(I_py.shape)
                     Q_c = result[nz*nw*pm.qnd:].reshape(Q_py.shape)
+                    if (np.min(I_c) < -1e-4 or np.min(I_py) < -1e-4): errors = errors +1
                     Idif.append(np.max(np.abs(I_c - I_py)))
                     Qdif.append(np.max(np.abs(Q_c - Q_py)))
                     Imax.append(np.max(I_py))
                     Qmax.append(np.max(Q_py))
                     Imin.append(np.min(I_py))
                     Qmin.append(np.min(Q_py))
-                    print(a,r,eps,dep_col,Hd)
+                    print(a,r,eps,dep_col,Hd, "\t\t", errors)
 
 
 with open('test_c_python.npy', 'wb') as f:
@@ -69,7 +71,7 @@ with open('test_c_python.npy', 'wb') as f:
     np.save(f, Imax)
     np.save(f, Qmax)
     np.save(f, Imin)
-    np.save(f, Qmax)
+    np.save(f, Qmin)
 
 import matplotlib.pyplot as plt
 

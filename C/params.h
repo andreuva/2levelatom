@@ -6,28 +6,27 @@
 // const int T = 5778;                    /* # T (isotermic) of the medium */
 
 /* ------ DEFINE THE PROBLEM PARAMETERS ------- */
-const float zl = -15; /*-log(1e3);          /* optical thicknes of the lower boundary */
-const float zu = 9; /*-log(1e-3);           /* optical thicknes of the upper boundary */
-const float dz = 0.75;                         /* (zu-zl)/(nz-1); */
+const double zl = -15; /*-log(1e3);          /* optical thicknes of the lower boundary */
+const double zu = 9; /*-log(1e-3);           /* optical thicknes of the upper boundary */
+const double dz = 0.75;                         /* (zu-zl)/(nz-1); */
 const short nz = (zu-zl)/dz + 1;                        /* # number of points in the z axes */
 
-const float wl = -7; /*c/(502e-9);          /* # lower/upper frequency limit (lambda in nm) */
-const float wu = 7;                         /*c/(498e-9);
+const double wl = -10; /*c/(502e-9);          /* # lower/upper frequency limit (lambda in nm) */
+const double wu = 10;                         /*c/(498e-9);
 /*const float w0 =  c/(500e-9);*/           /* wavelength of the transition (nm --> hz) */
-const float dw = 0.5;                       /* (wu-wl)/(nw-1); */
+const double dw = 0.25;                       /* (wu-wl)/(nw-1); */
 const short nw = (wu-wl)/dw + 1;                /* # points to sample the spectrum */
 
 const short qnd = 14;                        /* # nodes in the gaussian quadrature (# dirs) (odd) */
 
-const float a = 1e-1;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-const float r = 1e-2;                     /* # line strength XCI/XLI */
-const float eps = 1e-2;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-const float dep_col = 1;                   /* # Depolirarization colisions (delta) */
-const float Hd = .2;                        /* # Hanle depolarization factor [1/5, 1] */
-
 const short ju = 1;
 const short jl = 0;
 
-const float tolerance = 1e-10;           /* # Tolerance for finding the solution */
+const double tolerance = 1e-10;           /* # Tolerance for finding the solution */
 const int max_iter = 500;              /* maximum number of iterations */
 
+const double a = 1e-4;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+const double r = 1e-5;                     /* # line strength XCI/XLI */
+const double eps = 1e-3;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+const double dep_col = 0;                   /* # Depolirarization colisions (delta) */
+const double Hd = 1;                        /* # Hanle depolarization factor [1/5, 1] */

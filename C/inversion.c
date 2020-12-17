@@ -2,15 +2,10 @@
 *        2 LEVEL ATOM ATMOSPHERE SOLVER                        *
 *         AUTHOR: ANDRES VICENTE AREVALO                       *
 ****************************************************************/
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <complex.h>
 #include <time.h>
-#include "integratives.h"
-#include "params.h"
-#include "subroutines.c"
 #include "forward_solver.c"
+#include "linalg.c"
+// implicits includes in forward_solver
 
 #define numpar 5
 
@@ -73,18 +68,19 @@ void add_noise_1D(int nn, double array[nn], double std, double S_N){
 }
 
 double chi2_calc(double params[numpar], double I_obs_sol[nw], double Q_obs_sol[nw],
-double I_obs[nw], double Q_obs[nw], float std, double w_I, double w_Q){
+double I_obs[nw], double Q_obs[nw], double std, double w_I, double w_Q){
 
     double II[nz][nw][qnd], QQ[nz][nw][qnd];
     double chi2 = 0.;
+    int j;
 
     solve_profiles(params[0], params[1], params[2], params[3], params[4], II, QQ);
-    for (int j = 0; j < nw; j++){
+    for (j = 0; j < nw; j++){
         I_obs[j] = II[nz-1][j][mu_sel];
         Q_obs[j] = QQ[nz-1][j][mu_sel];
     }
     
-    for (int j = 0; j < nw; j++)
+    for (j = 0; j < nw; j++)
     {
         chi2 = chi2 + ( w_I*(I_obs[j] - I_obs_sol[j])*(I_obs[j] - I_obs_sol[j]) \
         + w_Q*(Q_obs[j]-Q_obs_sol[j])*(Q_obs[j]-Q_obs_sol[j]) )/(std*std*2*nw);
@@ -108,13 +104,25 @@ void surroundings_calc(double x_0[numpar], double surroundings[numpar][numpar], 
     return;
 }
 
+void check_range(double xs[][numpar], double x_l[], double x_u[]){
+    int i,j,k;
+
+    for (i = 0; i < numpar; i++){
+        if (xs[i][i] > x_u[i]){
+            xs[i][i] = 2*x_u[i] - xs[i][i];
+        }else if( xs[i][i] < x_l[i] ){
+            xs[i][i] = 2*x_l[i] - xs[i][i];
+        }
+    }
+    return;
+}
 
 void compute_alpha_beta(double alpha[numpar][numpar], double beta[numpar], double I_sol[nw], double Q_sol[nw],\
 double I_0[nw],double Q_0[nw], double x_0[numpar], double xs[numpar][numpar], double std, double w_I,double w_Q){
 
     double I_p[nz][nw][qnd], Q_p[nz][nw][qnd], II[nw], QQ[nw], Is[numpar][nw], Qs[numpar][nw];
     double dQ[numpar][nw], dI[numpar][nw];
-    int i, j, l;
+    int i, j, k, l;
 
     for (i = 0; i < numpar; i++){
         solve_profiles( xs[i][0], xs[i][1], xs[i][2], xs[i][3], xs[i][4], I_p, Q_p);
@@ -146,43 +154,75 @@ double I_0[nw],double Q_0[nw], double x_0[numpar], double xs[numpar][numpar], do
 }
 
 
+void solve_linear_sistem(double aa[numpar][numpar], double bb[numpar], double res[numpar]) {
+    int i, j, n = numpar, * indx;
+    double d, * b, ** a;
+
+    a = dmatrix(1, n, 1, n);
+    b = dvector(1, n);
+    
+    for (i = 0; i < n; i++){
+        for (j = 0; j < n; j++){
+            a[i+1][j+1] = aa[i][j];
+        }
+        b[i+1] = bb[i];
+    }
+    
+    indx = ivector(1, n);
+    ludcmp(a, n, indx, & d);
+    lubksb(a, n, indx, b);
+
+    for (i = 0; i < n; i++){
+        res[i] = b[i+1];
+    }
+
+    free_dvector(b, 1, n);
+    free_ivector(indx, 1, n);
+    free_dmatrix(a, 1, n, 1, n);
+
+    return;
+}
 
 
 int main(){
 
-    double I_sol[nz][nw][qnd], Q_sol[nz][nw][qnd];
-    double I_obs[nw], Q_obs[nw];
+    double lambd = 1e-5;
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
     double x_u[numpar] = {1, 1, 1, 10 ,1};
-    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a, r, eps, dep_col, Hd};
-    double std = 1e-10;
-    int i, j, k;
+    double std = 1e-5;
 
-    solve_profiles( x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4], I_sol, Q_sol);
+    int i, j, k;
+    double *profile_solution;
+    double I_full[nz][nw][qnd], Q_full[nz][nw][qnd];
+    double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw], I_obs_sol[nw], Q_obs_sol[nw];
+    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a, r, eps, dep_col, Hd};
+    double xs[numpar][numpar];
+
+    double chi2_0, chi2_1;
+    int new_point = 1;
+    double alpha[numpar][numpar], alpha_p[numpar][numpar], beta[numpar], deltas[numpar];
+
+
+    solve_profiles( x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4], I_full, Q_full);
     // add_noise(I_sol, std_I);
     // add_noise(Q_sol, std_Q);
 
     for (j = 0; j < nw; j++){
-        I_obs[j] = I_sol[nz-1][j][mu_sel];
-        Q_obs[j] = Q_sol[nz-1][j][mu_sel];
+        I_obs_sol[j] = I_full[nz-1][j][mu_sel];
+        Q_obs_sol[j] = Q_full[nz-1][j][mu_sel];
     }
 
-    add_noise_1D(nw, I_obs, std, -1.);
-    add_noise_1D(nw, Q_obs, std, -1.);
+    // add_noise_1D(nw, I_obs_sol, std, -1.);
+    // add_noise_1D(nw, Q_obs_sol, std, -1.);
 
     // initialice the parameters to start the inversion
-    for (i = 0; i < numpar; i++){
-        x_0[i] = (float)rand()/(float)(RAND_MAX) * (x_u[i] - x_l[i]) + x_l[i];
-    }
-    
-    double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw];
-    double chi2_0, chi2_1;
-    double lambd = 1e-5;
-    int new_point = 1;
-    double xs[numpar][numpar];
-    double alpha[numpar][numpar], alpha_p[numpar][numpar], beta[numpar], deltas[numpar];
+    // for (i = 0; i < numpar; i++){
+    //     x_0[i] = (double)rand()/(double)(RAND_MAX) * (x_u[i] - x_l[i]) + x_l[i];
+    // }
+    x_0[0] = 0.7031947915015868; x_0[1] = 0.6428440347466862; x_0[2] = 0.8576746479097167; 
+    x_0[3] = 3.323415121040828; x_0[4] = 0.5090965101718801;
 
-    chi2_0 = chi2_calc(x_0, I_obs, Q_obs, I_0, Q_0, std, w_I, w_Q);
+    chi2_0 = chi2_calc(x_0, I_obs_sol, Q_obs_sol, I_0, Q_0, std, w_I, w_Q);
 
     for (int itt = 0; itt < max_iter_inversion; itt++){
         fprintf(stdout, "\nitteration %i\t with a lambda of: %1.2e\n",itt,lambd);
@@ -192,15 +232,29 @@ int main(){
             fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
             x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]);
             surroundings_calc(x_0, xs, h);
-            compute_alpha_beta(alpha, beta, I_obs, Q_obs, I_0, Q_0, x_0, xs, std, w_I, w_Q);
+            check_range(xs,x_l,x_u);
+            compute_alpha_beta(alpha, beta, I_obs_sol, Q_obs_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q);
         }
 
         for (i = 0; i < numpar; i++){
-            for (k = 0; k < numpar; k++){ alpha_p[i][j] = alpha[i][j];}
+            for (j = 0; j < numpar; j++){ alpha_p[i][j] = alpha[i][j];}
             alpha_p[i][i] = alpha_p[i][i]*(1 + lambd);
         }
 
+        // for (i = 0; i < numpar; i++) {
+        //     for (j = 0; j < numpar; j++){ printf("%1.3e\t", alpha_p[i][j]); }
+        //     printf(" %5s  %1.3e\n", (i == 2 ? "* X =" : "     "), beta[i]);
+        // }
+        // printf( "\n");
+
         // SOLVE THE LINEAR SISTEM (alpha_P*deltas = beta) TO COMPUTE THE DELTAS
+        solve_linear_sistem(alpha_p , beta, deltas);
+
+        // for (i = 0; i < numpar; i++) {
+        //     for (j = 0; j < numpar; j++){ printf("%1.3e\t", alpha_p[i][j]); }
+        //     printf(" %5s  %1.3e\n", (i == 2 ? "* X =" : "     "), deltas[i]);
+        // }
+        // printf( "\n\n");
 
         for (i = 0; i < numpar; i++){
             if (x_0[i] + deltas[i] > x_u[i]){
@@ -214,13 +268,13 @@ int main(){
             x_1[i] = x_0[i] + deltas[i];
         }
 
-        chi2_1 = chi2_calc(x_1, I_obs, Q_obs, I_1, Q_1, std, w_I, w_Q);
+        chi2_1 = chi2_calc(x_1, I_obs_sol, Q_obs_sol, I_1, Q_1, std, w_I, w_Q);
         
         if (chi2_1 >= chi2_0){
             lambd = lambd*10;
             new_point = 0;
 
-            if (lambd > 1e25){
+            if (lambd > 1e35){
                 break;
             }
         }else{
@@ -237,6 +291,13 @@ int main(){
         }
     }
 
-    fprintf(stdout, "\n\n-----------------INVERSION FINISHED -------------------\n");
+    fprintf(stdout, "\n\n-------------------------INVERSION FINISHED-------------------------\n");
+    fprintf(stdout, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");
+    fprintf(stdout, "--------------------------------------------------------------------\n");
+    fprintf(stdout, "  a = %1.8e \t\t |  a_sol = %1.8e\n  r = %1.8e \t\t |  r_sol = %1.8e\
+    \n  eps = %1.8e \t\t |  eps_sol = %1.8e\n  delta = %1.8e \t |  delta_sol = %1.8e\
+    \n  Hd = %1.8e \t\t |  Hd_sol = %1.8e\n",\
+    x_0[0], x_sol[0], x_0[1], x_sol[1], x_0[2], x_sol[2], x_0[3], x_sol[3], x_0[4], x_sol[4]);
+    fprintf(stdout, "--------------------------------------------------------------------\n");
     return 0;
 }
