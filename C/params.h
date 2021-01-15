@@ -25,8 +25,8 @@ const short jl = 0;
 const double tolerance = 1e-10;           /* # Tolerance for finding the solution */
 const int max_iter = 500;              /* maximum number of iterations */
 
-const double a = 1e-4;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-const double r = 1e-5;                     /* # line strength XCI/XLI */
-const double eps = 1e-3;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-const double dep_col = 0;                   /* # Depolirarization colisions (delta) */
-const double Hd = 1;                        /* # Hanle depolarization factor [1/5, 1] */
+const double a_sol = 1e-4;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+const double r_sol = 1e-5;                     /* # line strength XCI/XLI */
+const double eps_sol = 1e-3;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+const double dep_col_sol = 0.5;                   /* # Depolirarization colisions (delta) */
+const double Hd_sol = 0.5;                        /* # Hanle depolarization factor [1/5, 1] */

@@ -10,6 +10,12 @@
 #include "params.h"
 #include "subroutines.c"
 
+const float a = 1;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+const float r = 1;                     /* # line strength XCI/XLI */
+const float eps = 1e-4;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+const float dep_col = 1;                   /* # Depolirarization colisions (delta) */
+const float Hd = 0.20;                        /* # Hanle depolarization factor [1/5, 1] */
+
 /* -------------------------------------------------------------------*/
 /* ------------------------- MAIN PROGRAM ----------------------------*/
 /* -------------------------------------------------------------------*/

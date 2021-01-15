@@ -7,14 +7,18 @@
 #include "linalg.c"
 // implicits includes in forward_solver
 
+// Define the number of free parameters of our inversion
 #define numpar 5
 
+// Define the selected mu to observe, the step of the
+// numerical derivative, the weights of chi_2.
 const int mu_sel = 9;
-const double h = 1e-8;
+const double h = 1e-10;
 const double w_I = 1e-1, w_Q = 1e2;
-const int max_iter_inversion = 100;
+const int max_iter_inversion = 1000;
 
 
+// Function to generate random numbers (return a pointer to a array)
 double* generate(int n)
 {
     int i;
@@ -38,6 +42,7 @@ double* generate(int n)
     return values;
 }
 
+// Function to add the noise to an existing array
 void add_noise_1D(int nn, double array[nn], double std, double S_N){
     
     int i;
@@ -67,6 +72,18 @@ void add_noise_1D(int nn, double array[nn], double std, double S_N){
     return;
 }
 
+/* Function to compute the chi squared of a given parameters:
+                        INPUTS
+params   : parameters of the forward model to compare
+I_obs_sol: Array of "observed" I varing with w
+Q_obs_sol: Array of "observed" Q varing with w
+std      : standar deviation of the noise in the observed profile 
+w_I      : weight of the I component in the chi_2 calculation
+w_Q      : weight of the Q component in the chi_2 calculation
+                        OUTPUTS
+I_obs : observed I profile with the given parameters (IMPLICIT)
+Q_obs : observed Q profile with the given parameters (IMPLICIT)
+Chi2  : Chi sqared of the given parameters (EXCLICIT)              */
 double chi2_calc(double params[numpar], double I_obs_sol[nw], double Q_obs_sol[nw],
 double I_obs[nw], double Q_obs[nw], double std, double w_I, double w_Q){
 
@@ -90,6 +107,8 @@ double I_obs[nw], double Q_obs[nw], double std, double w_I, double w_Q){
     return chi2;
 }
 
+// Compute the surroundings of a point in each parameter dimension to obtain the derivatives
+// returns a matrix with all the surrounding points as x_j[i] += x_j[i]+h[i] 
 void surroundings_calc(double x_0[numpar], double surroundings[numpar][numpar], double h){
 
     double delta[numpar];
@@ -100,18 +119,22 @@ void surroundings_calc(double x_0[numpar], double surroundings[numpar][numpar], 
         delta[i] = h;
         for(j = 0; j < numpar; j++){ surroundings[i][j] = x_0[j] + delta[j]; }
     }
-
     return;
 }
 
-void check_range(double xs[][numpar], double x_l[], double x_u[]){
+// Check if the surroundings are inside of the valid range of the parameters (X_l,x_u)
+// If not adjust the initial point (X_0) and the surroundings to fit inside the range
+// and to have the same direction of the derivative
+void check_range(double x_0[], double xs[][numpar], double x_l[], double x_u[]){
     int i,j,k;
 
     for (i = 0; i < numpar; i++){
         if (xs[i][i] > x_u[i]){
-            xs[i][i] = 2*x_u[i] - xs[i][i];
+            x_0[i] = x_u[i] - (xs[i][i] - x_0[i]);
+            xs[i][i] = x_u[i];
         }else if( xs[i][i] < x_l[i] ){
-            xs[i][i] = 2*x_l[i] - xs[i][i];
+            x_0[i] = x_l[i] + (x_0[i] - xs[i][i]);
+            xs[i][i] = x_l[i];
         }
     }
     return;
@@ -122,6 +145,7 @@ double I_0[nw],double Q_0[nw], double x_0[numpar], double xs[numpar][numpar], do
 
     double I_p[nz][nw][qnd], Q_p[nz][nw][qnd], II[nw], QQ[nw], Is[numpar][nw], Qs[numpar][nw];
     double dQ[numpar][nw], dI[numpar][nw];
+    double sum;
     int i, j, k, l;
 
     for (i = 0; i < numpar; i++){
@@ -137,16 +161,18 @@ double I_0[nw],double Q_0[nw], double x_0[numpar], double xs[numpar][numpar], do
     }
     
     for (i = 0; i < numpar; i++){
-        beta[i] = 0;
+        sum = 0;
         for (l = 0; l < nw; l++){
-            beta[i] = beta[i] + (w_I*(Is[i][l] - I_sol[l])*dI[i][l] + w_Q*(Qs[i][l] - Q_sol[l])*dQ[i][l])/(nw*std*std);
+            sum = sum + (w_I*(Is[i][l] - I_sol[l])*dI[i][l] + w_Q*(Qs[i][l] - Q_sol[l])*dQ[i][l])/(nw*std*std);
         }
-        
+        beta[i] = sum;
+       
         for (j = 0; j < numpar; j++){
-            alpha[i][j] = 0;
+            sum = 0;
             for (l = 0; l < nw; l++){
-                alpha[i][j] = alpha[i][j] + (w_I*dI[i][l]*dI[j][l] + w_Q*dQ[i][l]*dQ[j][l])/nw;
+                sum = sum + (w_I*dI[i][l]*dI[j][l] + w_Q*dQ[i][l]*dQ[j][l])/nw;
             }
+            alpha[i][j] = sum;
         }
     }
     
@@ -188,21 +214,34 @@ int main(){
 
     double lambd = 1e-5;
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
-    double x_u[numpar] = {1, 1, 1, 10 ,1};
+    double x_u[numpar] = {1, 1, 1, 1 ,1};
     double std = 1e-5;
 
     int i, j, k;
     double *profile_solution;
     double I_full[nz][nw][qnd], Q_full[nz][nw][qnd];
     double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw], I_obs_sol[nw], Q_obs_sol[nw];
-    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a, r, eps, dep_col, Hd};
+    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
     double xs[numpar][numpar];
 
     double chi2_0, chi2_1;
     int new_point = 1;
     double alpha[numpar][numpar], alpha_p[numpar][numpar], beta[numpar], deltas[numpar];
+    
+    for (i = 0; i < numpar; i++){
+        beta[i] = 0;
+        deltas[i] = 0;
+        for (j = 0; j < numpar; j++){
+            alpha[i][j] = 0;
+            alpha_p[i][j] = 0;
+        }
+    }
+ 
 
-
+    fprintf(stdout, "\nSOLUTION PARAMETERS:\n");
+    fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
+    x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4]);
+    fprintf(stdout, "Computing the solution profiles:");
     solve_profiles( x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4], I_full, Q_full);
     // add_noise(I_sol, std_I);
     // add_noise(Q_sol, std_Q);
@@ -219,8 +258,11 @@ int main(){
     // for (i = 0; i < numpar; i++){
     //     x_0[i] = (double)rand()/(double)(RAND_MAX) * (x_u[i] - x_l[i]) + x_l[i];
     // }
-    x_0[0] = 0.7031947915015868; x_0[1] = 0.6428440347466862; x_0[2] = 0.8576746479097167; 
-    x_0[3] = 3.323415121040828; x_0[4] = 0.5090965101718801;
+    fprintf(stdout, "\nINITIAL PARAMETERS:\n");
+    x_0[0] = a_sol + a_sol*0.02 ; x_0[1] = r_sol - r_sol * 0.05; x_0[2] = eps_sol + eps_sol*0.01; 
+    x_0[3] = dep_col_sol; x_0[4] = Hd_sol - Hd_sol*0.06 ;
+    fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
+    x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]);
 
     chi2_0 = chi2_calc(x_0, I_obs_sol, Q_obs_sol, I_0, Q_0, std, w_I, w_Q);
 
@@ -232,7 +274,7 @@ int main(){
             fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
             x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]);
             surroundings_calc(x_0, xs, h);
-            check_range(xs,x_l,x_u);
+            check_range(x_0, xs, x_l, x_u);
             compute_alpha_beta(alpha, beta, I_obs_sol, Q_obs_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q);
         }
 
@@ -257,15 +299,16 @@ int main(){
         // printf( "\n\n");
 
         for (i = 0; i < numpar; i++){
-            if (x_0[i] + deltas[i] > x_u[i]){
-                deltas[i] = x_u[i] - x_0[i];
-            }else if (x_0[i] + deltas[i] < x_l[i]){
-                deltas[i] = x_l[i] - x_0[i];
-            }
+            deltas[i] = deltas[i]/1e12;
+            x_1[i] = x_0[i] + deltas[i];
         }
 
         for (i = 0; i < numpar; i++){
-            x_1[i] = x_0[i] + deltas[i];
+            if (x_1[i] > x_u[i]){
+                x_1[i] = x_u[i];
+            }else if (x_1[i] < x_l[i]){
+                x_1[i] = x_l[i];
+            }
         }
 
         chi2_1 = chi2_calc(x_1, I_obs_sol, Q_obs_sol, I_1, Q_1, std, w_I, w_Q);
@@ -280,7 +323,7 @@ int main(){
         }else{
             lambd = lambd/10;
             for (i = 0; i < numpar; i++){
-                x_0[i] = x_0[i] + deltas[i];
+                x_0[i] = x_1[i];
             }
             chi2_0 = chi2_1;
             for (j = 0; j < nw; j++){
@@ -289,6 +332,7 @@ int main(){
             }
             new_point = 1;
         }
+        // return 0;
     }
 
     fprintf(stdout, "\n\n-------------------------INVERSION FINISHED-------------------------\n");

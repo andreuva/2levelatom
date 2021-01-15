@@ -201,7 +201,8 @@ Hd = %1.3e\n", a, r, eps, dep_col, Hd);
 
     wrapup:
 
-    fprintf(stdout,"\n");
+    // printf("finished in: %i iterations, Actual tolerance is :  %1.2e \n",l, mrc);
+    aux = aux;
     int index_I, index_Q;
 
     for (i = 0; i < nz; i++){
@@ -216,4 +217,10 @@ Hd = %1.3e\n", a, r, eps, dep_col, Hd);
     }
     
     return result;
+}
+
+void freeme(char *ptr)
+{
+    // printf("freeing address: %p\n", ptr);
+    free(ptr);
 }

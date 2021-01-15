@@ -13,7 +13,7 @@
 /* -------------------------------------------------------------------*/
 /* --------------- SUBROUTINE TO SOLVE THE PROFILES ------------------*/
 /* -------------------------------------------------------------------*/
-void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double I_res[][nw][qnd], double Q_res[][nw][qnd]) {    
+void solve_profiles(double a,double r, double eps, double dep_col, double Hd, double I_res[][nw][qnd], double Q_res[][nw][qnd]) {    
     
     // fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
     // fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
@@ -114,12 +114,12 @@ void solve_profiles(float a,float r, float eps, float dep_col, float Hd, double 
             for (j = 0; j < nw; j++){
                 for (k = 0; k < qnd; k++){
                     if(II[i][j][k] < -1e-4){
-                        fprintf(stdout,"fs.c found a negative intensity, stopping\n" \
-                            "Bad parameters:\n a = %1.6e\n r = %1.6e\n eps = %1.6e\n delta = %1.6e\n" \
-                            "Hd = %1.6e\n", a, r, eps, dep_col, Hd);
+                        fprintf(stdout,"forward_solver.c found a negative intensity, stopping\n" \
+                            "Bad parameters:\n a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n" \
+                            "Hd = %1.8e\n", a, r, eps, dep_col, Hd);
                         goto wrapup;
                     }
-                }                
+                }
             }
         }
         
