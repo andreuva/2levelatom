@@ -1,9 +1,9 @@
 /* ------- DEFINE SOME OF THE CONSTANTS OF THE PROBLEM ---------- */
-// const int c = 299792458;                   /* # m/s */
-// const float h = 6.626070150e-34;             /* # J/s */
-// const float kb = 1.380649e-23;                /* # J/K */
-// const float R = 8.31446261815324;            /* # J/K/mol */
-// const int T = 5778;                    /* # T (isotermic) of the medium */
+const int c = 299792458;                   /* # m/s */
+const float hh = 6.626070150e-34;             /* # J/s */
+const float kb = 1.380649e-23;                /* # J/K */
+const float R = 8.31446261815324;            /* # J/K/mol */
+const int T = 5778;                    /* # T (isotermic) of the medium */
 
 /* ------ DEFINE THE PROBLEM PARAMETERS ------- */
 const double zl = -15; /*-log(1e3);          /* optical thicknes of the lower boundary */
@@ -24,9 +24,3 @@ const short jl = 0;
 
 const double tolerance = 1e-10;           /* # Tolerance for finding the solution */
 const int max_iter = 500;              /* maximum number of iterations */
-
-const double a_sol = 1e-4;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-const double r_sol = 1e-5;                     /* # line strength XCI/XLI */
-const double eps_sol = 1e-3;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-const double dep_col_sol = 0.5;                   /* # Depolirarization colisions (delta) */
-const double Hd_sol = 0.5;                        /* # Hanle depolarization factor [1/5, 1] */

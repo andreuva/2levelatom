@@ -112,18 +112,25 @@ def trapezoidal(y,x, axis=-1):
 #                   COMPUTATION OF THE PROFILES                             #
 #                   AUTHOR: ANDRES VICENTE AREVALO                          #
 #############################################################################
+# Define the parameters of the problem
+a = 1e-5                          # dumping Voigt profile a=gam/(2^1/2*sig)
+r = 1e-2                          # XCI/XLI
+eps = 1e-4                        # Phot. dest. probability (LTE=1,NLTE=1e-4)
+dep_col = 0                       # Depolirarization colisions (delta)
+Hd = 1                            # Hanle depolarization factor [1/5, 1]
+
+make_initial_plots = True
+make_plots = True
+
+nn = int((pm.wu-pm.wl)/pm.dw /2)                    # element of frequency at which plot
+mm = -1                                    # dir at with plot the maps
 
 # We define the z0, zl, dz as our heigt grid (just 1D because of a
 # plane-parallel atmosfere and axial-simetry)
 zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 
 # Define the grid in frequencies ( or wavelengths )
-if pm.w_normaliced:
-    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
-    wnorm = ww.copy()
-else:
-    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # Compute the 1D spectral grid
-    wnorm = (ww - pm.w0)/pm.wa          # normalice the frequency to compute phy
+wnorm = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
 
 # Define the directions of the rays
 if pm.qnd%2 != 0:
@@ -137,7 +144,7 @@ weigths_shape = np.repeat(np.repeat(weigths[np.newaxis,:], len(wnorm), axis=0)[n
 # Compute the initial Voigts vectors
 phy = np.zeros_like(wnorm)
 for i in range(len(wnorm)):
-    phy[i] = np.real(func.voigt(wnorm[i], pm.a))
+    phy[i] = np.real(func.voigt(wnorm[i], a))
 phy = phy/trapezoidal(phy, wnorm, 0)          # normalice phy to sum 1
 
 
@@ -148,11 +155,11 @@ mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(wnorm), axis=0)[np.newaxis
 phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 wnorm_shape = np.repeat(np.repeat(wnorm[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
 zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(wnorm), axis=1)[:, :, np.newaxis], len(mus), axis=2)
-tau_shape = np.exp(-zz_shape)*(phy_shape + pm.r)
+tau_shape = np.exp(-zz_shape)*(phy_shape + r)
 
 
 w2jujl = 1 # jsymbols.j6(1,1,2,1,1,0)/jsymbols.j6(1,1,0,1,1,0)
-rr = phy_shape/(phy_shape + pm.r)
+rr = phy_shape/(phy_shape + r)
 
 # Compute the source function as a tensor in of zz, ww, mus
 # Initialaice the used tensors
@@ -169,7 +176,7 @@ SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
 SI = rr*SLI + (1 - rr)*plank_Ishape
 SQ = rr*SLQ
 
-if pm.initial_plots:
+if make_initial_plots:
     plt.plot(wnorm, (II/plank_Ishape)[5,:,-1], color='k', label=r'$I(\nu,z=0,\mu=1)$')
     plt.plot(wnorm, (QQ/II)[5,:,-1], color='g', label=r'$Q(\nu,z=0,\mu=1)$')
     plt.plot(wnorm, (SI/plank_Ishape)[5,:,-1], color='b', label=r'$S_I(\nu,z=0,\mu=1)$')
@@ -177,10 +184,10 @@ if pm.initial_plots:
     plt.xlabel(r'$\nu\ (Hz)$')
     plt.legend()
     plt.show()
-    plt.plot(wnorm, (phy/(phy + pm.r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
-    plt.plot(wnorm, pm.r/(phy + pm.r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
+    plt.plot(wnorm, (phy/(phy + r)), color='r', label= r'$ \dfrac{\phi(\nu)}{\phi(\nu) + r}$')
+    plt.plot(wnorm, r/(phy + r), color='b', label=r'$ \dfrac{r}{\phi(\nu) + r}$')
     plt.plot(wnorm, phy_shape[0,:,0], color='k', label=r'$ \phi(\nu) $')
-    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(pm.a,pm.w0))
+    plt.xlabel(r'$\nu\ (Hz)$'); plt.title('profiles with $a=${} and $w_0=${:.3e} Hz'.format(a,pm.w0))
     plt.legend()
     plt.show()
     
@@ -214,9 +221,9 @@ for itt in t:
 
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
 
-    S00_new = (1-pm.eps)*Jm00_shape + pm.eps*plank_Ishape
-    S20 = pm.Hd * (1-pm.eps)/(1 + (1-pm.eps)*pm.dep_col) * w2jujl * Jm02_shape
-    S00_new = (S00_new - S00)/(1 - (1-pm.eps)*lambd) + S00
+    S00_new = (1-eps)*Jm00_shape + eps*plank_Ishape
+    S20 = Hd * (1-eps)/(1 + (1-eps)*dep_col) * w2jujl * Jm02_shape
+    S00_new = (S00_new - S00)/(1 - (1-eps)*lambd) + S00
 
     SLI = S00_new + w2jujl * (3*mu_shape**2 - 1)/np.sqrt(8) * S20
     SLQ = w2jujl * 3*(mu_shape**2 - 1)/np.sqrt(8) * S20
@@ -246,7 +253,7 @@ if (itt >= pm.max_iter - 1):
     print('The found tolerance is: ',tol*100, '%')
 
 
-if pm.plots:
+if make_plots:
     plt.plot(wnorm, (II/plank_Ishape)[-1, :, -1], 'b', label=r'$I/B_{\nu}$')
     plt.plot(wnorm, (QQ/II)[-1, :, -1], 'r', label='$Q/I$')
     plt.plot(wnorm, (SI/plank_Ishape)[-1,:,-1], 'm', label=r'$S_I/B_{\nu}$')
@@ -273,15 +280,15 @@ if pm.plots:
     plt.xscale('log')
     plt.show()
 
-    plt.imshow(II[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
-    plt.imshow(QQ[:, :, pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
-    plt.imshow(SI[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
-    plt.imshow(SQ[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
-    plt.imshow((Jm00_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-    plt.imshow((Jm02_shape/plank_Ishape)[:,:,pm.mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
-    plt.imshow(II[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
-    plt.imshow(QQ[:, pm.nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
-    plt.imshow(SI[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_I$');plt.colorbar(); plt.show()
-    plt.imshow(SQ[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_Q$');plt.colorbar(); plt.show()
-    plt.imshow((Jm00_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
-    plt.imshow((Jm02_shape/plank_Ishape)[:,pm.nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow(II[:, :, mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$I_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, :, mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title('$Q_{calc}$');plt.colorbar(); plt.show()
+    plt.imshow(SI[:,:,mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,:,mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,:,mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,:,mm], origin='lower', aspect='auto'); plt.xlabel(r'$\nu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow(II[:, nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$I$'); plt.colorbar(); plt.show()
+    plt.imshow(QQ[:, nn, :], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$Q$'); plt.colorbar(); plt.show()
+    plt.imshow(SI[:,nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_I$');plt.colorbar(); plt.show()
+    plt.imshow(SQ[:,nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title('$S_Q$');plt.colorbar(); plt.show()
+    plt.imshow((Jm00_shape/plank_Ishape)[:,nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^0_0/B_\nu$');plt.colorbar(); plt.show()
+    plt.imshow((Jm02_shape/plank_Ishape)[:,nn,:], origin='lower', aspect='auto'); plt.xlabel(r'$\mu$'); plt.ylabel('z'); plt.title(r'$J^2_0/B_\nu$');plt.colorbar(); plt.show()

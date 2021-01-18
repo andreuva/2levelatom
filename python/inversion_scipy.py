@@ -4,7 +4,7 @@
 #############################################################################
 import numpy as np
 import matplotlib.pyplot as plt
-import forward_solver  as fs
+import forward_solver_py  as fs
 import random
 import scipy.optimize as opt
 from scipy.optimize import Bounds

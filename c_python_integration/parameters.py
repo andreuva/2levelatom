@@ -26,3 +26,11 @@ jl = 0
 
 tolerance = 1e-10 #0.5e-3               # Tolerance for finding the solution
 max_iter = 500                          # maximum number of iterations to find the solution
+
+#############################################################################
+#            DEFINE SOME OF THE CONSTANTS OF THE PROBLEM                    #
+#############################################################################
+c = 299792458                   # m/s
+h = 6.626070150e-34             # J/s
+kb = 1.380649e-23                # J/K
+R = 8.31446261815324            # J/K/mol

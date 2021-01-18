@@ -61,7 +61,7 @@ if(np.min(I_sol) < 0):
 w_I = 1e-8
 w_Q = 1e-5
 max_itter = 100
-nsamples = 5000
+nsamples = 10000
 std = 1e-5
 
 I_sol = add_noise(I_sol, std)

@@ -5,7 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm,trange
-import params_inversion as pm
+import parameters as pm
 import physical_functions as func
 import gaussian_quadrature as gauss
 # from jsymbols import jsymbols

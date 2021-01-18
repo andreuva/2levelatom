@@ -1,4 +1,4 @@
-import forward_solver as fs
+import forward_solver_py as fs
 import numpy as np
 
 errors = 0

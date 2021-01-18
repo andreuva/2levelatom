@@ -73,11 +73,11 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
     return alpha, beta
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-12      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-12      #1,1e-4   ,1e-10                 # XCI/XLI
-eps_sol = 1e-2                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
+a_sol = 1e-3      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-4      #1,1e-4   ,1e-10                 # XCI/XLI
+eps_sol = 1e-4                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
 dep_col_sol = 1e-2             #0.1          # Depolirarization colisions (delta)
-Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
+Hd_sol = 0.25                  #1          # Hanle depolarization factor [1/5, 1]
 
 mu = 9 #int(fs.pm.qnd/2)
 

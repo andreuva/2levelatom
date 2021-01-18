@@ -15,7 +15,7 @@
 const int mu_sel = 9;
 const double h = 1e-10;
 const double w_I = 1e-1, w_Q = 1e2;
-const int max_iter_inversion = 1000;
+const int max_iter_inversion = 100;
 
 
 // Function to generate random numbers (return a pointer to a array)
@@ -212,6 +212,12 @@ void solve_linear_sistem(double aa[numpar][numpar], double bb[numpar], double re
 
 int main(){
 
+    const double a_sol = 1e-6;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+    const double r_sol = 1e-12;                     /* # line strength XCI/XLI */
+    const double eps_sol = 1e-4;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+    const double dep_col_sol = 0.01;                   /* # Depolirarization colisions (delta) */
+    const double Hd_sol = 0.8;                        /* # Hanle depolarization factor [1/5, 1] */
+
     double lambd = 1e-5;
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
     double x_u[numpar] = {1, 1, 1, 1 ,1};
@@ -259,8 +265,11 @@ int main(){
     //     x_0[i] = (double)rand()/(double)(RAND_MAX) * (x_u[i] - x_l[i]) + x_l[i];
     // }
     fprintf(stdout, "\nINITIAL PARAMETERS:\n");
-    x_0[0] = a_sol + a_sol*0.02 ; x_0[1] = r_sol - r_sol * 0.05; x_0[2] = eps_sol + eps_sol*0.01; 
-    x_0[3] = dep_col_sol; x_0[4] = Hd_sol - Hd_sol*0.06 ;
+    x_0[0] = 1e-5 ;//a_sol + a_sol*0.02 ;
+    x_0[1] = 1e-5 ;//r_sol - r_sol * 0.05;
+    x_0[2] = 1e-3 ;//eps_sol + eps_sol*0.01; 
+    x_0[3] = 1e-1 ;//dep_col_sol;
+    x_0[4] = 0.6  ;//Hd_sol - Hd_sol*0.06 ;
     fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
     x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]);
 
@@ -299,7 +308,7 @@ int main(){
         // printf( "\n\n");
 
         for (i = 0; i < numpar; i++){
-            deltas[i] = deltas[i]/1e12;
+            // deltas[i] = deltas[i]/1e10;
             x_1[i] = x_0[i] + deltas[i];
         }
 

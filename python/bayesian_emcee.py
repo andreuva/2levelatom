@@ -90,12 +90,19 @@ x_l = np.array([0,0,0,0,0.2])
 x_u = np.array([12,12,4,1,1])
 #############################################################################
 ndim = 5
-nsamples = 100_000
+nsamples = 1000
 nwalkers = 15
 
 random.seed(1234)
 x_0 = None
 for i in range(nwalkers):
+    
+    # a = random.uniform(x_l[0], x_u[0])
+    # r = random.uniform(x_l[1], x_u[1])
+    # eps = random.uniform(x_l[2], x_u[2])
+    # dep_col = random.uniform(x_l[3], x_u[3])
+    # Hd = random.uniform(x_l[4], x_u[4])
+    
     a = a_sol + random.uniform( -a_sol*0.05 , a_sol*0.05 )
     r = r_sol + random.uniform( -0.05*r_sol, r_sol*0.05 )
     eps = eps_sol + random.uniform( -0.05*eps_sol , eps_sol*0.05 )
