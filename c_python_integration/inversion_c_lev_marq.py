@@ -5,10 +5,19 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import forward_solver_py  as fs
-from parameters import nw,nz,qnd
+import random
+
 from ctypes import c_void_p ,c_double, c_int, c_float, cdll
 from numpy.ctypeslib import ndpointer
-import random
+import parameters as pm
+
+
+lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/c_python_integration/forward_solver.so")
+solve_profiles = lib.solve_profiles
+solve_profiles.restype = ndpointer(dtype=c_double , shape=(pm.nz*pm.nw*pm.qnd*2,))
+freeme = lib.freeme
+freeme.argtypes = ndpointer(dtype=c_double , shape=(pm.nz*pm.nw*pm.qnd*2,)),
+freeme.restype = None
 
 ##########################     SUBROUTINES     ##############################
 def add_noise(array, sigma):
@@ -32,12 +41,16 @@ def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu):
     # print(f" a = {a}\n r = {r}\n eps = {eps}\n delta = {dep_col}\n Hd = {Hd}\n")
     # print("\n Computing the new profiles:")
 
-    I,Q = fs.solve_profiles(a, r, eps, dep_col, Hd)
+    result = solve_profiles(c_float(a), c_float(r), c_float(eps), c_float(dep_col), c_float(Hd))
+    I = result[:pm.nz*pm.nw*pm.qnd].reshape((pm.nz,pm.nw,pm.qnd))
+    Q = result[pm.nz*pm.nw*pm.qnd:].reshape((pm.nz,pm.nw,pm.qnd))
     I_obs = I[-1,:,mu].copy()
     Q_obs = Q[-1,:,mu].copy()
-    chi2 = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
+    freeme(result)
 
+    chi2 = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
     print(f'Chi^2 of this profiles is: {chi2} ' )
+
     return chi2, I_obs, Q_obs
 
 def surroundings(x_0, h):
@@ -61,9 +74,13 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
     alpha = np.zeros( (x_0.size, x_0.size) )
     
     for i in range(len(x_0)):
-        I, Q = fs.solve_profiles( xs[i,0], xs[i,1], xs[i,2], xs[i,3], xs[i,4] )
+
+        result = solve_profiles(c_float(xs[i,0]), c_float(xs[i,1]), c_float(xs[i,2]), c_float(xs[i,3]), c_float(xs[i,4]))
+        I = result[:pm.nz*pm.nw*pm.qnd].reshape((pm.nz,pm.nw,pm.qnd))
+        Q = result[pm.nz*pm.nw*pm.qnd:].reshape((pm.nz,pm.nw,pm.qnd))
         Is[i] = I[-1,:,mu].copy()
         Qs[i] = Q[-1,:,mu].copy()
+        freeme(result)
 
         dI[i] = (I_0 - Is[i])/h
         dQ[i] = (Q_0 - Qs[i])/h
@@ -76,18 +93,13 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
     return alpha, beta
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-1      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-2      #1,1e-4   ,1e-10                 # XCI/XLI
+a_sol = 1e-12      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-12      #1,1e-4   ,1e-10                 # XCI/XLI
 eps_sol = 1e-2                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
-dep_col_sol = 1             #0.1          # Depolirarization colisions (delta)
-Hd_sol = .2                  #1          # Hanle depolarization factor [1/5, 1]
+dep_col_sol = 1e-2             #0.1          # Depolirarization colisions (delta)
+Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
 
-mu = -6 #int(fs.pm.qnd/2)
-
-# Load the library needed to solve the profiles with the C routine
-lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/c_python_integration/forward_solver.so")
-solve_profiles = lib.solve_profiles
-solve_profiles.restype = ndpointer(dtype=c_double , shape=(nz*nw*qnd*2,))
+mu = 9 #int(fs.pm.qnd/2)
 
 print("Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
@@ -103,10 +115,14 @@ if(np.min(I_sol) < 0):
 ##############  INITIALICE THE PARAMETERS AND ADD NOISE TO "OBSERVED" #########
 w_I = 1e-1
 w_Q = 1e2
-h = 1e-10
-max_itter = 100
-
+h = 1e-5
+max_itter = 200
 std = 1e-5
+# initial guess of the lambda parameter
+lambd = 1e-5
+new_point = True
+solutions = []
+
 I_sol = add_noise(I_sol, std)
 Q_sol = add_noise(Q_sol, std)
 
@@ -125,11 +141,6 @@ x_l = np.array([1e-12,1e-12,1e-4,0,0.2])
 x_u = np.array([1,1,1,10,1])
 
 chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
-
-# initial guess of the lambda parameter
-lambd = 1e-5
-new_point = True
-solutions = []
 
 for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
@@ -153,15 +164,21 @@ for itt in range(max_itter):
             deltas[i] = x_u[i] - x_0[i]
         elif x_0[i] + deltas[i] < x_l[i]:
             deltas[i] = x_l[i] - x_0[i]
+        else:
+            pass
 
     chi2_1, I_1, Q_1 = chi2(x_0 + deltas, I_sol, Q_sol, std, w_I, w_Q, mu)
 
     if chi2_1 >= chi2_0:
         lambd = lambd*10
         new_point = False
-        if lambd > 1e25:
-            break
 
+        if lambd > 1e25:
+            if chi2_1 < 1e3:
+                break
+            else:
+                lambd = 1e-5
+                break
     else:
         lambd = lambd/10
         x_0 = x_0 + deltas
@@ -194,9 +211,12 @@ plt.plot(I_sol, 'ok', label=r'$I/B_{\nu}$ "observed"')
 plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial')
 plt.plot(I_res, 'b', label=r'$I/B_{\nu}$ inverted')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
+plt.savefig('../figures/c_lev_marq_I.png')
+plt.close()
+
 plt.plot(Q_initial, 'r--', label='$Q/I$ initial')
 plt.plot(Q_sol, 'ok', label='$Q/I$ "observed"')
 plt.plot(Q_res, 'b--', label='$Q/I$ inverted')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
+plt.savefig('../figures/c_lev_marq_Q.png')
+plt.close()

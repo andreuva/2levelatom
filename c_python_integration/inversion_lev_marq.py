@@ -73,11 +73,11 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
     return alpha, beta
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-4      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-2      #1,1e-4   ,1e-10                 # XCI/XLI
-eps_sol = 1e-3                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
-dep_col_sol = 1             #0.1          # Depolirarization colisions (delta)
-Hd_sol = .2                  #1          # Hanle depolarization factor [1/5, 1]
+a_sol = 1e-12      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-12      #1,1e-4   ,1e-10                 # XCI/XLI
+eps_sol = 1e-2                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
+dep_col_sol = 1e-2             #0.1          # Depolirarization colisions (delta)
+Hd_sol = 1                  #1          # Hanle depolarization factor [1/5, 1]
 
 mu = 9 #int(fs.pm.qnd/2)
 
@@ -95,8 +95,8 @@ if(np.min(I_sol) < 0):
 ##############  INITIALICE THE PARAMETERS AND ADD NOISE TO "OBSERVED" #########
 w_I = 1e-1
 w_Q = 1e2
-h = 1e-8
-max_itter = 100
+h = 1e-5
+max_itter = 200
 std = 1e-5
 # initial guess of the lambda parameter
 lambd = 1e-5
@@ -210,9 +210,12 @@ plt.plot(I_sol, 'ok', label=r'$I/B_{\nu}$ "observed"')
 plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial')
 plt.plot(I_res, 'b', label=r'$I/B_{\nu}$ inverted')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
+plt.savefig('../figures/lev_marq_I.png')
+plt.close()
+
 plt.plot(Q_initial, 'r--', label='$Q/I$ initial')
 plt.plot(Q_sol, 'ok', label='$Q/I$ "observed"')
 plt.plot(Q_res, 'b--', label='$Q/I$ inverted')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
+plt.savefig('../figures/lev_marq_Q.png')
+plt.close()

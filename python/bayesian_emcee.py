@@ -8,6 +8,7 @@ import forward_solver_py  as fs
 import random
 import emcee
 import corner
+from multiprocessing import Pool
 
 ##########################     SUBROUTINES     ##############################
 def add_noise(array, sigma):
@@ -89,8 +90,8 @@ x_l = np.array([0,0,0,0,0.2])
 x_u = np.array([12,12,4,1,1])
 #############################################################################
 ndim = 5
-nsamples = 8000
-nwalkers = 12
+nsamples = 100_000
+nwalkers = 15
 
 random.seed(1234)
 x_0 = None
@@ -107,8 +108,9 @@ for i in range(nwalkers):
     else:
         x_0 = np.vstack((x_0, init))
 
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, moves = emcee.moves.StretchMove(), args=(x_l, x_u, I_sol, Q_sol, std, w_I, w_Q, mu))
-sampler.run_mcmc(x_0, nsamples, progress=True, skip_initial_state_check= True)
+with Pool() as pool:
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability, moves = emcee.moves.StretchMove(), args=(x_l, x_u, I_sol, Q_sol, std, w_I, w_Q, mu),  pool=pool)
+    sampler.run_mcmc(x_0, nsamples, progress=True, skip_initial_state_check= True)
 
 fig, axes = plt.subplots(5, figsize=(10, 7), sharex=True)
 samples = sampler.get_chain()

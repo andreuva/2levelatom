@@ -17,8 +17,8 @@ from multiprocessing import Pool
 
 lib = cdll.LoadLibrary("/home/andreuva/Documents/2 level atom/2levelatom/c_python_integration/forward_solver.so")
 solve_profiles = lib.solve_profiles
-solve_profiles.restype = ndpointer(dtype=c_void_p , shape=(pm.nz*pm.nw*pm.qnd*2,))
-lib.freeme.argtypes = ndpointer(dtype=c_void_p , shape=(pm.nz*pm.nw*pm.qnd*2,)),
+solve_profiles.restype = ndpointer(dtype=c_double , shape=(pm.nz*pm.nw*pm.qnd*2,))
+lib.freeme.argtypes = ndpointer(dtype=c_double , shape=(pm.nz*pm.nw*pm.qnd*2,)),
 lib.freeme.restype = None
 
 ##########################     SUBROUTINES     ##############################
@@ -44,12 +44,18 @@ def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu):
     # print("\n Computing the new profiles:")
 
     # I,Q = fs.solve_profiles(a, r, eps, dep_col, Hd)
+    # I_obs = I[-1,:,mu].copy()
+    # Q_obs = Q[-1,:,mu].copy()
+    # chi2 = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
+    # print('-----------------------------------')
+    # print(f'Chi^2 of this profiles is: {chi2} ' )
+
     result = solve_profiles(c_float(a), c_float(r), c_float(eps), c_float(dep_col), c_float(Hd))
     I = result[:pm.nz*pm.nw*pm.qnd].reshape((pm.nz,pm.nw,pm.qnd))
     Q = result[pm.nz*pm.nw*pm.qnd:].reshape((pm.nz,pm.nw,pm.qnd))
-    lib.freeme(result)
     I_obs = I[-1,:,mu].copy()
     Q_obs = Q[-1,:,mu].copy()
+    lib.freeme(result)
     chi2 = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
 
     # print(f'Chi^2 of this profiles is: {chi2} ' )
@@ -85,7 +91,11 @@ mu = 9 #int(fs.pm.qnd/2)
 print("Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
 print("Computing the solution profiles:")
+
 # I_sol, Q_sol = fs.solve_profiles(a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol)
+# I_sol = I_sol[-1,:,mu].copy()
+# Q_sol = Q_sol[-1,:,mu].copy()
+
 result = solve_profiles(c_float(a_sol), c_float(r_sol), c_float(eps_sol), c_float(dep_col_sol), c_float(Hd_sol))
 I_sol = result[:pm.nz*pm.nw*pm.qnd].reshape((pm.nz,pm.nw,pm.qnd))
 Q_sol = result[pm.nz*pm.nw*pm.qnd:].reshape((pm.nz,pm.nw,pm.qnd))
@@ -116,17 +126,17 @@ random.seed(1234)
 x_0 = None
 for i in range(nwalkers):
     
-    a = random.uniform(x_l[0], x_u[0])
-    r = random.uniform(x_l[1], x_u[1])
-    eps = random.uniform(x_l[2], x_u[2])
-    dep_col = random.uniform(x_l[3], x_u[3])
-    Hd = random.uniform(x_l[4], x_u[4])
+    # a = random.uniform(x_l[0], x_u[0])
+    # r = random.uniform(x_l[1], x_u[1])
+    # eps = random.uniform(x_l[2], x_u[2])
+    # dep_col = random.uniform(x_l[3], x_u[3])
+    # Hd = random.uniform(x_l[4], x_u[4])
     
-    # a = a_sol + random.uniform( -a_sol*0.05 , a_sol*0.05 )
-    # r = r_sol + random.uniform( -0.05*r_sol, r_sol*0.05 )
-    # eps = eps_sol + random.uniform( -0.05*eps_sol , eps_sol*0.05 )
-    # dep_col = dep_col_sol + random.uniform( -0.05*dep_col_sol, dep_col_sol*0.05 )
-    # Hd = Hd_sol + random.uniform( -0.05*Hd_sol, Hd_sol*0.05 )
+    a = a_sol + random.uniform( -a_sol*0.05 , a_sol*0.05 )
+    r = r_sol + random.uniform( -0.05*r_sol, r_sol*0.05 )
+    eps = eps_sol + random.uniform( -0.05*eps_sol , eps_sol*0.05 )
+    dep_col = dep_col_sol + random.uniform( -0.05*dep_col_sol, dep_col_sol*0.05 )
+    Hd = Hd_sol + random.uniform( -0.05*Hd_sol, Hd_sol*0.05 )
 
     init = np.array([a,r,eps,dep_col,Hd])
     if x_0 is None:
