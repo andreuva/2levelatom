@@ -117,7 +117,7 @@ void solve_profiles(double a,double r, double eps, double dep_col, double Hd, do
                         fprintf(stdout,"forward_solver.c found a negative intensity, stopping\n" \
                             "Bad parameters:\n a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n" \
                             "Hd = %1.8e\n", a, r, eps, dep_col, Hd);
-                        exit(0);
+                        exit(1);
                         goto wrapup;
                     }
                 }

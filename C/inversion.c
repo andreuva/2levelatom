@@ -13,7 +13,7 @@
 // Define the selected mu to observe, the step of the
 // numerical derivative, the weights of chi_2.
 const int mu_sel = 9;
-const double h = 1e-10;
+const double h = 1e-5;
 const double w_I = 1e-1, w_Q = 1e2;
 const int max_iter_inversion = 100;
 
@@ -213,10 +213,10 @@ void solve_linear_sistem(double aa[numpar][numpar], double bb[numpar], double re
 int main(){
 
     const double a_sol = 1e-6;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-    const double r_sol = 1e-12;                     /* # line strength XCI/XLI */
+    const double r_sol = 1e-6;                     /* # line strength XCI/XLI */
     const double eps_sol = 1e-4;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-    const double dep_col_sol = 0.01;                   /* # Depolirarization colisions (delta) */
-    const double Hd_sol = 0.8;                        /* # Hanle depolarization factor [1/5, 1] */
+    const double dep_col_sol = 0.01;                /* # Depolirarization colisions (delta) */
+    const double Hd_sol = 0.8;                      /* # Hanle depolarization factor [1/5, 1] */
 
     double lambd = 1e-5;
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
@@ -249,16 +249,14 @@ int main(){
     x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4]);
     fprintf(stdout, "Computing the solution profiles:");
     solve_profiles( x_sol[0], x_sol[1], x_sol[2], x_sol[3], x_sol[4], I_full, Q_full);
-    // add_noise(I_sol, std_I);
-    // add_noise(Q_sol, std_Q);
 
     for (j = 0; j < nw; j++){
         I_obs_sol[j] = I_full[nz-1][j][mu_sel];
         Q_obs_sol[j] = Q_full[nz-1][j][mu_sel];
     }
 
-    // add_noise_1D(nw, I_obs_sol, std, -1.);
-    // add_noise_1D(nw, Q_obs_sol, std, -1.);
+    add_noise_1D(nw, I_obs_sol, std, -1.);
+    add_noise_1D(nw, Q_obs_sol, std, -1.);
 
     // initialice the parameters to start the inversion
     // for (i = 0; i < numpar; i++){

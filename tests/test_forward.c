@@ -10,14 +10,15 @@ int main(){
     double dep_col = 0.5;                   /* # Depolirarization colisions (delta) */
     double Hd = 0.20;                        /* # Hanle depolarization factor [1/5, 1] */
 
-    for (int i = 0; i < 8; i++)
-    {
-        a = a + a*10;
-        Hd = Hd + 0.1;
-        eps = eps + 3.34e-3;
-        r = r + r*10;
-        fprintf(stdout,"%1.6e   %1.6e  %1.6e  %1.6e\n",a, r, eps, Hd);
-        solve_profiles(a, r, eps, dep_col, Hd, II, QQ);
-    }
+    a = 1.00000000e+00;
+    r = 1.00000000e-12;
+    eps = 1.00000000e-04;
+    dep_col = 0.00000000e+00;
+    Hd = 1.00000000e+00;
+
+    fprintf(stdout,"\nforward_solver.c test to check the parameters:\n" \
+                    " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n" \
+                    " Hd = %1.8e\n\n", a, r, eps, dep_col, Hd);
+    solve_profiles(a, r, eps, dep_col, Hd, II, QQ);
     return 0;
 }
