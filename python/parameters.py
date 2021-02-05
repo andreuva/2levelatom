@@ -20,6 +20,9 @@ jl = 0
 
 tolerance = 1e-10 #0.5e-3               # Tolerance for finding the solution
 max_iter = 500                          # maximum number of iterations to find the solution
+dump_lev_marq = 2                       # dumping parameter of the lev-marq
+
+nodes_sep = 10                           # distance (in points) at wich to grab the nodes
 
 #############################################################################
 #            DEFINE SOME OF THE CONSTANTS OF THE PROBLEM                    #
