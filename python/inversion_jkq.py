@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import forward_solver_jkq  as fs
 import forward_solver_py as sfs
+import forward_solver_py_J as sfs_j
 import parameters as pm
 
 ##########################     SUBROUTINES     ##############################
@@ -93,17 +94,17 @@ def compute_alpha_beta(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_
     return alpha, beta
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-4      #1e-5,1e-2 ,1e-4                # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-4      #1,1e-4   ,1e-10                 # XCI/XLI
-eps_sol = 1e-3                          # Phot. dest. probability (LTE=1,NLTE=1e-4)
-dep_col_sol = .7             #0.1          # Depolirarization colisions (delta)
-Hd_sol = .8                  #1          # Hanle depolarization factor [1/5, 1]
+a_sol = 1e-6      #1e-3                 # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-8      #1e-2                 # XCI/XLI
+eps_sol = 1e-3    #1e-1                 # Phot. dest. probability (LTE=1,NLTE=1e-4)
+dep_col_sol = 2   #8                    # Depolirarization colisions (delta)
+Hd_sol = .4       #.8                  # Hanle depolarization factor [1/5, 1]
 mu = 9 #int(fs.pm.qnd/2)
 
 print("Solution parameters: ")
 print(f" a = {a_sol}\n r = {r_sol}\n eps = {eps_sol}\n delta = {dep_col_sol}\n Hd = {Hd_sol}\n")
 print("Computing the solution profiles:")
-I_sol, Q_sol = sfs.solve_profiles(a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol)
+I_sol, Q_sol, Jm00_sol, Jm20_sol = sfs_j.solve_profiles(a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol)
 I_sol = I_sol[-1,:,mu].copy()
 Q_sol = Q_sol[-1,:,mu].copy()
 
@@ -112,25 +113,30 @@ if(np.min(I_sol) < 0):
     exit()
 
 ##############  INITIALICE THE PARAMETERS AND ADD NOISE TO "OBSERVED" #########
-w_I, w_Q = 1e-1, 1e1
-w_j00, w_j20 = 1e2, 1e6
+w_I, w_Q = 1e-2, 1e5
+w_j00, w_j20 = 1e4, 1e10
 h = 1e-5
 max_itter = 1000
-std = 1e-5
+std = 1e-6
 # initial guess of the lambda parameter
 lambd = 1e0
 new_point = True
-solutions = []
 
 I_sol = add_noise(I_sol, std)
 Q_sol = add_noise(Q_sol, std)
 
 np.random.seed(11196)
-a =  a_sol                           #10**(-np.random.uniform(0,10))
-r =  r_sol                           #10**(-np.random.uniform(0,12))
-eps = eps_sol                        #10**(-np.random.uniform(0,4))
-dep_col =  dep_col_sol               #np.random.uniform(0,1)
-Hd =  Hd_sol                         #np.random.uniform(1/5, 1)
+a =  1e-3                          #10**(-np.random.uniform(0,10))
+r =  1e-2                          #10**(-np.random.uniform(0,12))
+eps = 1e-1                         #10**(-np.random.uniform(0,4))
+dep_col =  8                       #np.random.uniform(0,1)
+Hd =  0.8                          #np.random.uniform(1/5, 1)
+
+# a =  a_sol *1.1                          #10**(-np.random.uniform(0,10))
+# r =  r_sol *1.5                          #10**(-np.random.uniform(0,12))
+# eps = eps_sol * 10                          #10**(-np.random.uniform(0,4))
+# dep_col =  dep_col_sol * 5              #np.random.uniform(0,1)
+# Hd =  Hd_sol * 1.2                        #np.random.uniform(1/5, 1)
 
 # Jm00 = np.arange(fs.pm.zl, fs.pm.zu + fs.pm.dz, fs.pm.dz)[fs.selected]
 # Jm00 = (10 - Jm00)*1e-5
@@ -216,7 +222,7 @@ print("Computing the initial and final profiles:")
 I_initial, Q_initial, _ ,_ = fs.solve_profiles(a, r, eps, dep_col, Hd, Jm00_initial, Jm20_initial)
 I_initial = I_initial[-1,:,mu].copy()
 Q_initial = Q_initial[-1,:,mu].copy()
-I_res, Q_res, _, _ = fs.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res, Jm00, Jm20)
+I_res, Q_res, _, _ = fs.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res, Jm00_0, Jm20_0)
 I_res = I_res[-1,:,mu].copy()
 Q_res = Q_res[-1,:,mu].copy()
 
@@ -231,13 +237,13 @@ print('mu           = %1.2e ' % mu )
 print('std          = %1.2e ' % std )
 
 plt.plot(I_sol, 'ok', label=r'$I/B_{\nu}$ "observed"')
-plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial')
-plt.plot(I_res, 'b', label=r'$I/B_{\nu}$ inverted')
+plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial parameters')
+plt.plot(I_res, 'b', label=r'$I/B_{\nu}$ inverted parameters')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
 plt.show()
-plt.plot(Q_initial, 'r--', label='$Q/I$ initial')
+plt.plot(Q_initial, 'r--', label='$Q/I$ initial parameters')
 plt.plot(Q_sol, 'ok', label='$Q/I$ "observed"')
-plt.plot(Q_res, 'b--', label='$Q/I$ inverted')
+plt.plot(Q_res, 'b--', label='$Q/I$ inverted parameters')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
 plt.show()
 
@@ -246,6 +252,7 @@ plt.plot(points[-1,2],points[-1,4],'ok', markersize=7)
 plt.plot(eps_sol,Hd_sol,'or', markersize=10)
 plt.plot(eps,Hd,'ob', markersize=10)
 plt.xlim(x_l[2],x_u[2]);    plt.ylim(x_l[4],x_u[4])
+plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('eps');          plt.ylabel('H_d')
 plt.xscale('log')
 plt.show()
@@ -255,6 +262,7 @@ plt.plot(points[-1,2],points[-1,3],'ok', markersize=7)
 plt.plot(eps_sol,dep_col_sol,'or', markersize=10)
 plt.plot(eps,dep_col,'ob', markersize=10)
 plt.xlim(x_l[2],x_u[2]);    plt.ylim(x_l[3],x_u[3])
+plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('eps');          plt.ylabel('dep_col')
 plt.xscale('log')
 plt.show()
@@ -264,6 +272,7 @@ plt.plot(points[-1,3],points[-1,4],'ok', markersize=7)
 plt.plot(dep_col_sol,Hd_sol,'or', markersize=10)
 plt.plot(dep_col,Hd,'ob', markersize=10)
 plt.xlim(x_l[3],x_u[3]);    plt.ylim(x_l[4],x_u[4])
+plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('dep_col');      plt.ylabel('H_d')
 plt.show()
 
@@ -272,6 +281,7 @@ plt.plot(points[-1,1],points[-1,2],'ok', markersize=7)
 plt.plot(r_sol,eps_sol,'or', markersize=10)
 plt.plot(r,eps,'ob', markersize=10)
 plt.xlim(x_l[1],x_u[1]);    plt.ylim(x_l[2],x_u[2])
+plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('r');            plt.ylabel('eps')
 plt.xscale('log');          plt.yscale('log')
 plt.show()
@@ -287,11 +297,15 @@ interp_J20_jkq = mon_spline_interp(z_nodes, Jm20_1, extrapolate=True)
 Jm00_interp_jkq = interp_J00_jkq(zz)
 Jm20_interp_jkq = interp_J20_jkq(zz)
 
-plt.plot(zz,Jm00_interp_jkq,'-.r')
-plt.plot(z_nodes,Jm00_1,'or')
-plt.plot(z_nodes,Jm00_initial,'ok')
+plt.plot(zz,Jm00_interp_jkq,'-.b', label='Interpolated Js')
+plt.plot(z_nodes,Jm00_1,'ob', label='Inverted nodes')
+plt.plot(z_nodes,Jm00_initial,'ok', label='Initial guess')
+plt.plot(zz,Jm00_sol,'-.r', label='solution Js')
+plt.legend(); plt.title('$J_0^0$')
 plt.show()
-plt.plot(zz,Jm20_interp_jkq,'-.r')
-plt.plot(z_nodes,Jm20_1,'or')
-plt.plot(z_nodes,Jm20_initial,'ok')
+plt.plot(zz,Jm20_interp_jkq,'-.b', label='Interpolated Js')
+plt.plot(z_nodes,Jm20_1,'ob', label='Inverted nodes')
+plt.plot(z_nodes,Jm20_initial,'ok', label='Initial guess')
+plt.plot(zz,Jm20_sol,'-.r', label='solution Js')
+plt.legend(); plt.title('$J_0^2$')
 plt.show()
