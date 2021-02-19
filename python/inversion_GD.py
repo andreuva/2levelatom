@@ -18,7 +18,7 @@ def add_noise(array, sigma):
     return array
 
 
-def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, w_j00, w_j20, mu):
+def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, mu):
     '''
     Compute the cost function of the inversion given the parameters, the noise
     and weigths of the diferent components (I,Q...)
@@ -47,14 +47,14 @@ def surroundings(x_0, h):
     return surroundings
 
 
-def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu):
+def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
 
-    chi2_pivot, _ , _  = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    chi2_pivot, _ , _  = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
     chi2s = np.ones((x_0.shape[0],2))
     chi2s[:,0] = np.ones(x_0.shape[0])*chi2_pivot
     
     for i in range(len(x_0)):
-        chi2s[i,1], _ , _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+        chi2s[i,1], _ , _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, mu)
 
     _ , beta = np.gradient(chi2s,1)
     beta = beta[:,0]
@@ -70,7 +70,7 @@ Hd_sol = .8       #.8                  # Hanle depolarization factor [1/5, 1]
 mu = 9 #int(fs.pm.qnd/2)
 
 ##############      INITIALICE THE PARAMETERS       #######################
-seed = 1234
+seed = 666
 np.random.seed(seed)
 a_initial =  10**(-np.random.uniform(0,10))
 r_initial =  10**(-np.random.uniform(0,12))
@@ -79,12 +79,11 @@ dep_col_initial =  np.random.uniform(0,1)
 Hd_initial =  np.random.uniform(1/5, 1)
 
 w_I     , w_Q   = 1e-1  , 1e3
-w_j00   , w_j20 = 1e4   , 1e10
 
 h = 1e-8
 max_itter = 250
 std = 1e-5
-step_size = 1e-5
+# step_size = 1e-5
 step_size = np.array([1e-4,1e-4,1e-4,1e0,1e0])
 
 
@@ -116,7 +115,7 @@ x_u = np.array([1,1,1,10,1])
 
 points = x_0.copy()
 
-chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+chi2_0, I_0, Q_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
 
 for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
@@ -127,7 +126,7 @@ for itt in range(max_itter):
 
     points = np.vstack((points,x_0))
     xs = surroundings(x_0, h)
-    beta = compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu)
+    beta = compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu)
 
     x_1 = x_0 - step_size*beta
 
@@ -137,7 +136,7 @@ for itt in range(max_itter):
         elif x_1[i] < x_l[i]:
             x_1[i] = x_l[i]
 
-    chi2_1, I_1, Q_1 = chi2(x_1, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    chi2_1, I_1, Q_1 = chi2(x_1, I_sol, Q_sol, std, w_I, w_Q, mu)
 
     if chi2_1 < 1e3:
         break

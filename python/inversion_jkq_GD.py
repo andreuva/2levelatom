@@ -9,6 +9,7 @@ import forward_solver_jkq  as fs
 import forward_solver_py as sfs
 import forward_solver_py_J as sfs_j
 import parameters as pm
+from multiprocessing import Pool
 
 zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 z_nodes = zz[fs.selected]
@@ -43,6 +44,7 @@ def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, w_j00, w_j20, mu):
 
     print(f'Chi^2 profiles: {chi2_p}\t Chi^2 regularization: {chi2_r}')
     print(f'Total Chi^2 of this profiles is: {chi2}')
+
     return chi2, I_obs, Q_obs, Jm00_new, Jm20_new
 
 
@@ -57,14 +59,25 @@ def surroundings(x_0, h):
     return surroundings
 
 
+def chi2_g(i):
+    res, _, _, _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    return res
+
+
 def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu):
 
     chi2_pivot, _, _, _, _ = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
     chi2s = np.ones((x_0.shape[0],2))
     chi2s[:,0] = np.ones(x_0.shape[0])*chi2_pivot
     
-    for i in range(len(x_0)):
-        chi2s[i,1], _, _, _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    # for i in range(len(x_0)):
+    #     chi2s[i,1], _, _ , _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+
+    with Pool(processes=10) as pool:
+        chi2s_pre = pool.map(chi2_g, range(len(x_0)))
+
+    for i in range(len(chi2s_pre)):
+        chi2s[i,1] = chi2s_pre[i]
 
     _ , beta = np.gradient(chi2s,1)
     beta = beta[:,0]
@@ -80,25 +93,28 @@ Hd_sol = .8       #.8                  # Hanle depolarization factor [1/5, 1]
 mu = 9 #int(fs.pm.qnd/2)
 
 ##############      INITIALICE THE PARAMETERS       #######################
-# np.random.seed(11196)
-a_initial =  1e-6                          #10**(-np.random.uniform(0,10))
-r_initial =  1e-8                          #10**(-np.random.uniform(0,12))
-eps_initial = 1e-2                         #10**(-np.random.uniform(0,4))
-dep_col_initial =  1                       #np.random.uniform(0,1)
-Hd_initial =  0.4                          #np.random.uniform(1/5, 1)
+seed = 666
+np.random.seed(seed)
+a_initial =  10**(-np.random.uniform(0,10))
+r_initial =  10**(-np.random.uniform(0,12))
+eps_initial = 10**(-np.random.uniform(0,4))
+dep_col_initial =  np.random.uniform(0,1)
+Hd_initial =  np.random.uniform(1/5, 1)
 
-w_I     , w_Q   = 1e-1  , 1e2
-w_j00   , w_j20 = 1e4   , 1e10
+w_I     , w_Q   = 1e0  , 1e3
+w_j00   , w_j20 = 1e5   , 1e10
 
-h = 1e-5
+h = 1e-8
 max_itter = 1000
 std = 1e-5
-step_size = 1e-3
+# step_size = 1e-4
+step_size = np.array([1e-3,1e-3,1e-3,5,5e-1])
+step_size = np.append(step_size,np.ones(sum(fs.selected*2))*1e-2)
 
 Jm00_initial = np.array([1. , 0.99995944, 0.99983577, 0.99962606, 0.99932733, 0.99893665, 0.99845105, 0.99786758, 0.99718328, 0.97773623, 0.92565889, 0.84813991, 0.75236794, 0.64553164, 0.53481965, 0.38480041, 0.26508522, 0.18169505, 0.12148064, 0.08577316, 0.06477453, 0.05275551, 0.04591633, 0.04215418, 0.04019498, 0.03922855, 0.0387448 , 0.03860897, 0.03850076, 0.03841888,0.038362  , 0.03832884, 0.03831807])
 Jm20_initial = np.array([ 1.44731191e-16, -2.81879436e-08, -1.14020509e-07, -2.59400797e-07, -4.66231909e-07, -7.36416945e-07, -1.07185901e-06, -1.47446120e-06, -1.94612661e-06, -1.05213095e-05, -3.32016139e-05, -6.69396683e-05, -1.08688101e-04, -1.55399539e-04, -2.04026612e-04, -2.70746465e-04, -3.27195292e-04, -3.36229008e-04, -3.39271150e-04, -7.81891276e-05, 4.50362171e-04,  1.10069299e-03,  1.70089796e-03,  2.12759684e-03, 2.37858629e-03,  2.50977815e-03,  2.57686847e-03,  2.59601123e-03, 2.61129167e-03,  2.62288006e-03,  2.63094668e-03,  2.63566178e-03, 2.63719564e-03])
-Jm00_initial = Jm00_initial[fs.selected]
-Jm20_initial = Jm20_initial[fs.selected]
+Jm00_initial = Jm00_initial[fs.selected]*0
+Jm20_initial = Jm20_initial[fs.selected]*0
 
 Jml, Jmu = Jm00_initial/Jm00_initial * -1e20 , Jm00_initial/Jm00_initial * 1e2 
 
@@ -133,7 +149,7 @@ chi2_0, I_0, Q_0, Jm00_0, Jm20_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00,
 for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
     
-    print(f'itteration {itt} with a step size of {step_size}')
+    print(f'itteration {itt} with a step size of type array')
     print("\nNew parameters: ")
     print(f" a = {x_0[0]}\n r = {x_0[1]}\n eps = {x_0[2]}\n delta = {x_0[3]}\n Hd = {x_0[4]}\n")
 
@@ -141,7 +157,10 @@ for itt in range(max_itter):
     xs = surroundings(x_0, h)
     beta = compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu)
 
-    x_1 = x_0 - step_size*beta
+    if itt < 20:
+        x_1 = x_0 - step_size*beta*10**(-20+itt)
+    else:
+        x_1 = x_0 - step_size*beta
 
     for i in range(len(x_0)):
         if x_1[i] > x_u[i]:
@@ -170,7 +189,7 @@ I_initial = I_initial[-1,:,mu].copy()
 Q_initial = Q_initial[-1,:,mu].copy()
 
 a_res, r_res, eps_res, dep_col_res, Hd_res = x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]
-I_res, Q_res, _, _ = sfs_j.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res)
+I_res, Q_res, _, _ = fs.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res, Jm00_0, Jm20_0)
 I_res = I_res[-1,:,mu].copy()
 Q_res = Q_res[-1,:,mu].copy()
 
