@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import forward_solver_py as fs
 import parameters as pm
+from multiprocessing import Pool
 
 ##########################     SUBROUTINES     ##############################
 def add_noise(array, sigma):
@@ -47,14 +48,25 @@ def surroundings(x_0, h):
     return surroundings
 
 
+def chi2_g(i):
+    res, _ , _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, mu)
+    return res
+
+
 def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, mu):
 
     chi2_pivot, _ , _  = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, mu)
     chi2s = np.ones((x_0.shape[0],2))
     chi2s[:,0] = np.ones(x_0.shape[0])*chi2_pivot
     
-    for i in range(len(x_0)):
-        chi2s[i,1], _ , _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, mu)
+    # for i in range(len(x_0)):
+    #     chi2s[i,1], _ , _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, mu)
+
+    with Pool(processes=10) as pool:
+        chi2s_pre = pool.map(chi2_g, range(len(x_0)))
+
+    for i in range(len(chi2s_pre)):
+        chi2s[i,1] = chi2s_pre[i]
 
     _ , beta = np.gradient(chi2s,1)
     beta = beta[:,0]

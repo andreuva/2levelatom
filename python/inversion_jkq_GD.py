@@ -10,6 +10,9 @@ import forward_solver_py as sfs
 import forward_solver_py_J as sfs_j
 import parameters as pm
 from multiprocessing import Pool
+import os
+from datetime import datetime
+import shelve
 
 zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
 z_nodes = zz[fs.selected]
@@ -41,11 +44,13 @@ def chi2(params, I_obs_sol, Q_obs_sol, std, w_I, w_Q, w_j00, w_j20, mu):
     chi2_p = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)
     chi2_r = np.sum(w_j00*(Jm00-Jm00_new)**2 + w_j20*(Jm20 - Jm20_new)**2 )/(2*fs.nodes_len)
     chi2 = chi2_p + chi2_r
+    if np.abs(chi2_r-chi2_points[-1,1]) < chi2_r*0.0005:
+        chi2 = chi2_p
 
-    print(f'Chi^2 profiles: {chi2_p}\t Chi^2 regularization: {chi2_r}')
-    print(f'Total Chi^2 of this profiles is: {chi2}')
+    # print(f'Chi^2 profiles: {chi2_p}\t Chi^2 regularization: {chi2_r}')
+    # print(f'Total Chi^2 of this profiles is: {chi2}')
 
-    return chi2, I_obs, Q_obs, Jm00_new, Jm20_new
+    return chi2_p, chi2_r, chi2, I_obs, Q_obs, Jm00_new, Jm20_new
 
 
 def surroundings(x_0, h):
@@ -60,19 +65,16 @@ def surroundings(x_0, h):
 
 
 def chi2_g(i):
-    res, _, _, _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    _, _, res, _, _, _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
     return res
 
 
 def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu):
 
-    chi2_pivot, _, _, _, _ = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    _, _, chi2_pivot, _, _, _, _ = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
     chi2s = np.ones((x_0.shape[0],2))
     chi2s[:,0] = np.ones(x_0.shape[0])*chi2_pivot
     
-    # for i in range(len(x_0)):
-    #     chi2s[i,1], _, _ , _, _ = chi2(xs[i], I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
-
     with Pool(processes=10) as pool:
         chi2s_pre = pool.map(chi2_g, range(len(x_0)))
 
@@ -85,15 +87,15 @@ def compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j2
     return beta
 
 ####################    COMPUTE THE "OBSERVED" PROFILE    #####################
-a_sol = 1e-3      #1e-3                 # dumping Voigt profile a=gam/(2^1/2*sig)
-r_sol = 1e-2      #1e-2                 # XCI/XLI
-eps_sol = 1e-1    #1e-1                 # Phot. dest. probability (LTE=1,NLTE=1e-4)
-dep_col_sol = 8   #8                    # Depolirarization colisions (delta)
-Hd_sol = .8       #.8                  # Hanle depolarization factor [1/5, 1]
+a_sol = 1e-4      #1e-3                 # dumping Voigt profile a=gam/(2^1/2*sig)
+r_sol = 1e-6      #1e-2                 # XCI/XLI
+eps_sol = 1e-4    #1e-1                 # Phot. dest. probability (LTE=1,NLTE=1e-4)
+dep_col_sol = 0   #8                    # Depolirarization colisions (delta)
+Hd_sol = .3       #.8                  # Hanle depolarization factor [1/5, 1]
 mu = 9 #int(fs.pm.qnd/2)
 
 ##############      INITIALICE THE PARAMETERS       #######################
-seed = 666
+seed = 1196
 np.random.seed(seed)
 a_initial =  10**(-np.random.uniform(0,10))
 r_initial =  10**(-np.random.uniform(0,12))
@@ -101,15 +103,18 @@ eps_initial = 10**(-np.random.uniform(0,4))
 dep_col_initial =  np.random.uniform(0,1)
 Hd_initial =  np.random.uniform(1/5, 1)
 
-w_I     , w_Q   = 1e0  , 1e3
-w_j00   , w_j20 = 1e5   , 1e10
+w_I     , w_Q   = 1e-1  , 1e2
+w_j00   , w_j20 = 1e6   , 1e11
 
 h = 1e-8
-max_itter = 1000
+max_itter = 1500
 std = 1e-5
-# step_size = 1e-4
-step_size = np.array([1e-3,1e-3,1e-3,5,5e-1])
-step_size = np.append(step_size,np.ones(sum(fs.selected*2))*1e-2)
+cc = 1
+step_size = np.array([1e-3,1e-3,1e-3,5,1e-2])
+step_size = np.append(step_size,np.ones(sum(fs.selected*2))*1e-3)
+directory = f'../figures/{datetime.now().strftime("%H%M%S%f")}_{max_itter}_{w_I}_{w_Q}_{np.around(np.mean(step_size),2):.2e}/'
+if not os.path.exists(directory):
+    os.makedirs(directory)
 
 Jm00_initial = np.array([1. , 0.99995944, 0.99983577, 0.99962606, 0.99932733, 0.99893665, 0.99845105, 0.99786758, 0.99718328, 0.97773623, 0.92565889, 0.84813991, 0.75236794, 0.64553164, 0.53481965, 0.38480041, 0.26508522, 0.18169505, 0.12148064, 0.08577316, 0.06477453, 0.05275551, 0.04591633, 0.04215418, 0.04019498, 0.03922855, 0.0387448 , 0.03860897, 0.03850076, 0.03841888,0.038362  , 0.03832884, 0.03831807])
 Jm20_initial = np.array([ 1.44731191e-16, -2.81879436e-08, -1.14020509e-07, -2.59400797e-07, -4.66231909e-07, -7.36416945e-07, -1.07185901e-06, -1.47446120e-06, -1.94612661e-06, -1.05213095e-05, -3.32016139e-05, -6.69396683e-05, -1.08688101e-04, -1.55399539e-04, -2.04026612e-04, -2.70746465e-04, -3.27195292e-04, -3.36229008e-04, -3.39271150e-04, -7.81891276e-05, 4.50362171e-04,  1.10069299e-03,  1.70089796e-03,  2.12759684e-03, 2.37858629e-03,  2.50977815e-03,  2.57686847e-03,  2.59601123e-03, 2.61129167e-03,  2.62288006e-03,  2.63094668e-03,  2.63566178e-03, 2.63719564e-03])
@@ -142,25 +147,31 @@ x_0 = np.array([a_initial,r_initial,eps_initial,dep_col_initial,Hd_initial, *Jm0
 x_l = np.array([1e-12,1e-12,1e-4,0,0.2, *Jml, *Jml])
 x_u = np.array([1,1,1,10,1, *Jmu, *Jmu])
 
-points = x_0.copy()
+chi2_points = np.array([[0,0,0],[0,0,0]])
+chi2_p, chi2_r, chi2_0, I_0, Q_0, Jm00_0, Jm20_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
 
-chi2_0, I_0, Q_0, Jm00_0, Jm20_0 = chi2(x_0, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+points = x_0.copy()
+chi2_points = np.vstack((chi2_points,np.array([chi2_p,chi2_r,chi2_0])))
+Jm00_evolution = Jm00_0.copy()
+Jm20_evolution = Jm20_0.copy()
+I_evolution = I_0.copy()
+Q_evolution = Q_0.copy()
+new_point = True
 
 for itt in range(max_itter):
 # calculation of the drerivatives of the forward model
     
-    print(f'itteration {itt} with a step size of type array')
-    print("\nNew parameters: ")
-    print(f" a = {x_0[0]}\n r = {x_0[1]}\n eps = {x_0[2]}\n delta = {x_0[3]}\n Hd = {x_0[4]}\n")
+    print(f'itteration {itt}')
 
-    points = np.vstack((points,x_0))
-    xs = surroundings(x_0, h)
-    beta = compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu)
+    if new_point:
+        points = np.vstack((points,x_0))
+        xs = surroundings(x_0, h)
+        beta = compute_gradient(I_sol, Q_sol, I_0, Q_0, x_0, xs, std, w_I, w_Q, w_j00, w_j20, mu)
 
-    if itt < 20:
-        x_1 = x_0 - step_size*beta*10**(-20+itt)
+    if itt < 5:
+        x_1 = x_0 - step_size*beta*cc*10**(-5+itt)
     else:
-        x_1 = x_0 - step_size*beta
+        x_1 = x_0 - step_size*beta*cc
 
     for i in range(len(x_0)):
         if x_1[i] > x_u[i]:
@@ -168,30 +179,48 @@ for itt in range(max_itter):
         elif x_1[i] < x_l[i]:
             x_1[i] = x_l[i]
 
-    chi2_1, I_1, Q_1, Jm00_1, Jm20_1 = chi2(x_1, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    chi2_p, chi2_r, chi2_1, I_1, Q_1, Jm00_1, Jm20_1 = chi2(x_1, I_sol, Q_sol, std, w_I, w_Q, w_j00, w_j20, mu)
+    print(f'Chi^2 profiles: {chi2_p}\t Chi^2 regularization: {chi2_r}')
+    print(f'Total Chi^2 of this profiles is: {chi2_1}')
+    print(f'Regularization == {not np.abs(chi2_r-chi2_points[-1,1]) < chi2_r*0.0005}')
 
     if chi2_1 < 1e3:
         break
 
-    x_0 = x_1.copy()
-    chi2_0 = chi2_1.copy()
-    I_0 = I_1.copy()
-    Q_0 = Q_1.copy()
-    Jm00_0 = Jm00_1.copy()
-    Jm20_0 = Jm20_1.copy()
+    if chi2_1 < chi2_0:
+        x_0 = x_1.copy()
+        cc = cc*1.25
+        new_point = True
+        print("\nNew parameters: ")
+        print(f" a = {x_0[0]}\n r = {x_0[1]}\n eps = {x_0[2]}\n delta = {x_0[3]}\n Hd = {x_0[4]}\n")
+        
+        chi2_0 = chi2_1.copy()
+        chi2_points = np.vstack((chi2_points,np.array([chi2_p,chi2_r,chi2_0])))
+
+        I_0 = I_1.copy()
+        Q_0 = Q_1.copy()
+        I_evolution = np.vstack((I_evolution, I_0))
+        Q_evolution = np.vstack((Q_evolution, Q_0))
+
+        Jm00_0 = Jm00_1.copy()
+        Jm20_0 = Jm20_1.copy()
+        Jm00_evolution = np.vstack((Jm00_evolution,Jm00_0))
+        Jm20_evolution = np.vstack((Jm20_evolution,Jm20_0))
+
+    else:
+        cc = cc/2
+        new_point = False
 
 
 ##### PRINT AND PLOT THE SOLUTION AND COMPARE IT TO THE INITIAL AND OBSERVED PROFILES ####
 print("Computing the initial and final profiles:")
-I_initial, Q_initial, _ ,_ = fs.solve_profiles(a_initial, r_initial, eps_initial, dep_col_initial, Hd_initial, Jm00_initial, Jm20_initial)
-I_initial, Q_initial = sfs.solve_profiles(a_initial, r_initial, eps_initial, dep_col_initial, Hd_initial)
-I_initial = I_initial[-1,:,mu].copy()
-Q_initial = Q_initial[-1,:,mu].copy()
-
 a_res, r_res, eps_res, dep_col_res, Hd_res = x_0[0], x_0[1], x_0[2], x_0[3], x_0[4]
-I_res, Q_res, _, _ = fs.solve_profiles(a_res, r_res, eps_res, dep_col_res, Hd_res, Jm00_0, Jm20_0)
-I_res = I_res[-1,:,mu].copy()
-Q_res = Q_res[-1,:,mu].copy()
+
+I_res = I_evolution[-1]
+Q_res = Q_evolution[-1]
+
+I_initial = I_evolution[0]
+Q_initial = Q_evolution[0]
 
 print('\nFound Parameters - Solution parameters:')
 print('a_result     = %1.2e \t a_solution     = %1.2e \t a_initial      = %1.2e' % (a_res, a_sol, a_initial))
@@ -208,12 +237,14 @@ plt.plot(I_sol, 'ok', label=r'$I/B_{\nu}$ "observed"')
 plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial parameters')
 plt.plot(I_res, 'b', label=r'$I/B_{\nu}$ inverted parameters')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
-plt.plot(Q_initial, 'r--', label='$Q/I$ initial parameters')
-plt.plot(Q_sol, 'ok', label='$Q/I$ "observed"')
-plt.plot(Q_res, 'b--', label='$Q/I$ inverted parameters')
+plt.savefig(directory + 'I.png')
+plt.close()
+plt.plot(Q_initial, 'r--', label='$Q$ initial parameters')
+plt.plot(Q_sol, 'ok', label='$Q$ "observed"')
+plt.plot(Q_res, 'b--', label='$Q$ inverted parameters')
 plt.legend(); plt.xlabel(r'$\nu\ (Hz)$')
-plt.show()
+plt.savefig(directory + 'Q.png')
+plt.close()
 
 plt.plot(points[:,2],points[:,4],'o-.k', markersize=3, linewidth=1)
 plt.plot(points[-1,2],points[-1,4],'ok', markersize=7)
@@ -223,7 +254,8 @@ plt.xlim(x_l[2],x_u[2]);    plt.ylim(x_l[4],x_u[4])
 plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('eps');          plt.ylabel('H_d')
 plt.xscale('log')
-plt.show()
+plt.savefig(directory + 'eps_Hd.png')
+plt.close()
 
 plt.plot(points[:,2],points[:,3],'o-.k', markersize=3, linewidth=1)
 plt.plot(points[-1,2],points[-1,3],'ok', markersize=7)
@@ -233,7 +265,8 @@ plt.xlim(x_l[2],x_u[2]);    plt.ylim(x_l[3],x_u[3])
 plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('eps');          plt.ylabel('dep_col')
 plt.xscale('log')
-plt.show()
+plt.savefig(directory + 'eps_delta.png')
+plt.close()
 
 plt.plot(points[:,3],points[:,4],'o-.k', markersize=3, linewidth=1)
 plt.plot(points[-1,3],points[-1,4],'ok', markersize=7)
@@ -242,7 +275,8 @@ plt.plot(dep_col_initial,Hd_initial,'ob', markersize=10)
 plt.xlim(x_l[3],x_u[3]);    plt.ylim(x_l[4],x_u[4])
 plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('dep_col');      plt.ylabel('H_d')
-plt.show()
+plt.savefig(directory + 'delta_Hd.png')
+plt.close()
 
 plt.plot(points[:,1],points[:,2],'o-.k', markersize=3, linewidth=1)
 plt.plot(points[-1,1],points[-1,2],'ok', markersize=7)
@@ -252,23 +286,74 @@ plt.xlim(x_l[1],x_u[1]);    plt.ylim(x_l[2],x_u[2])
 plt.title('Movement in the parameter space of the inversion vs solution')
 plt.xlabel('r');            plt.ylabel('eps')
 plt.xscale('log');          plt.yscale('log')
-plt.show()
+plt.savefig(directory + 'r_eps.png')
+plt.close()
 
-interp_J00_jkq = mon_spline_interp(z_nodes, Jm00_1, extrapolate=True)
-interp_J20_jkq = mon_spline_interp(z_nodes, Jm20_1, extrapolate=True)
+interp_J00_jkq = mon_spline_interp(z_nodes, Jm00_evolution[-1], extrapolate=True)
+interp_J20_jkq = mon_spline_interp(z_nodes, Jm20_evolution[-1], extrapolate=True)
 
 Jm00_interp_jkq = interp_J00_jkq(zz)
 Jm20_interp_jkq = interp_J20_jkq(zz)
 
 plt.plot(zz,Jm00_interp_jkq,'-.b', label='Interpolated Js')
-plt.plot(z_nodes,Jm00_1,'ob', label='Inverted nodes')
-plt.plot(z_nodes,Jm00_initial,'ok', label='Initial guess')
+plt.plot(z_nodes,Jm00_evolution[-1],'ob', label='Inverted nodes')
+plt.plot(z_nodes,Jm00_evolution[0],'ok', label='Initial guess')
 plt.plot(zz,Jm00_sol,'-.r', label='solution Js')
 plt.legend(); plt.title('$J_0^0$')
-plt.show()
+plt.savefig(directory + 'Jm00.png')
+plt.close()
 plt.plot(zz,Jm20_interp_jkq,'-.b', label='Interpolated Js')
-plt.plot(z_nodes,Jm20_1,'ob', label='Inverted nodes')
-plt.plot(z_nodes,Jm20_initial,'ok', label='Initial guess')
+plt.plot(z_nodes,Jm20_evolution[-1],'ob', label='Inverted nodes')
+plt.plot(z_nodes,Jm20_evolution[0],'ok', label='Initial guess')
 plt.plot(zz,Jm20_sol,'-.r', label='solution Js')
 plt.legend(); plt.title('$J_0^2$')
-plt.show()
+plt.savefig(directory + 'Jm20.png')
+plt.close()
+
+
+plt.plot(chi2_points[:,2], 'k', label=r'total $\chi^2$')
+plt.plot(chi2_points[:,0], 'b', label=r'$\chi^2$ of the profiles')
+plt.plot(chi2_points[:,1], 'r', label=r'$\chi^2$ of the regularization')
+plt.legend(); plt.title(r'$\chi^2$ contributions')
+plt.yscale('log')
+plt.savefig(directory + 'chi2.png')
+plt.close()
+
+####     SAVING ALL THE WORKSPACE    ####
+filename = directory + 'variables.out'
+my_shelf = shelve.open(filename,'n') # 'n' for new
+
+for key in dir():
+    try:
+        my_shelf[key] = globals()[key]
+    except:
+        print('ERROR shelving: {0}'.format(key))
+my_shelf.close()
+
+
+plt.plot(I_sol, 'ok', label=r'$I/B_{\nu}$ "observed"')
+plt.plot(I_initial, 'r', label=r'$I/B_{\nu}$ initial parameters')
+for i,Is in enumerate(I_evolution[::100]):
+    plt.plot(Is,label=f'itt {i}')
+plt.legend(); plt.xlabel(r'$\nu\ (Hz)$'); plt.show()
+
+plt.plot(Q_sol, 'ok', label=r'$Q$ "observed"')
+plt.plot(Q_initial, 'r', label=r'$Q$ initial parameters')
+for i,Qs in enumerate(Q_evolution[::100]):
+    plt.plot(Qs,label=f'itt {i}')
+plt.legend(); plt.xlabel(r'$\nu\ (Hz)$'); plt.show()
+
+
+for i,nodes in enumerate(Jm00_evolution[::100]):
+    interp_J00_jkq = mon_spline_interp(z_nodes, nodes, extrapolate=True)
+    Jm00_interp_jkq = interp_J00_jkq(zz)
+    plt.plot(zz,Jm00_interp_jkq,'-.', label=f'itt {i}')
+plt.plot(zz,Jm00_sol,'r', label='solution Js')
+plt.legend(); plt.title('$J_0^0$'); plt.show()
+
+for i,nodes in enumerate(Jm20_evolution[::100]):
+    interp_J20_jkq = mon_spline_interp(z_nodes, nodes, extrapolate=True)
+    Jm20_interp_jkq = interp_J20_jkq(zz)
+    plt.plot(zz,Jm20_interp_jkq,'-.', label=f'itt {i}')
+plt.plot(zz,Jm20_sol,'r', label='solution Js')
+plt.legend(); plt.title('$J_0^2$'); plt.show()
