@@ -7,8 +7,8 @@ zu = 9                                     # upper boundary optically thin
 dz = 0.75                                  # stepsize
 nz = int((zu-zl)/dz + 1)
 
-wl = -10
-wu = 10
+wl = -6
+wu = 6
 w0 = 0
 dw = 0.25
 nw = int((wu-wl)/dw + 1)
