@@ -1,3 +1,7 @@
+#############################################################################
+#       RESTORING ALL THE VARIABLES IN A WORKSPACE SAVED WITH SHELVE        #
+#                AUTHOR: ANDRES VICENTE AREVALO                             #
+#############################################################################
 import numpy as np
 import matplotlib.pyplot as plt
 import shelve
@@ -5,10 +9,10 @@ import forward_solver_jkq  as fs
 import forward_solver_py as sfs
 import forward_solver_py_J as sfs_j
 
-directory = '../figures/115702436353_3000_0.1_100.0_2.00e-01/'
+# Directory where the workspace_variables.out is located
+directory = '../figures/130012438205_2000_1_1.0e+03_1.0e+06_1.0e+08_1.0e-02/'
 
-
-my_shelf = shelve.open(directory + 'variables.out')
+my_shelf = shelve.open(directory + 'workspace_variables.out')
 for key in my_shelf:
     try:
         globals()[key]=my_shelf[key]
@@ -16,7 +20,8 @@ for key in my_shelf:
         print(f'Failed to load {key}')
 my_shelf.close()
 
-print('\nFound Parameters - Solution parameters:')
-print('Initial   &  %1.2e &  %1.2e &  %1.2e &  %1.2e &  %1.2e \\ \hline' % (a_initial, r_initial, eps_initial, dep_col_initial, Hd_initial))
-print('Inversion &  %1.2e &  %1.2e &  %1.2e &  %1.2e &  %1.2e \\ \hline' % (a_res, r_res, eps_res, dep_col_res, Hd_res))
-print('Solution  &  %1.2e &  %1.2e &  %1.2e &  %1.2e &  %1.2e \\ \hline' % (a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol))
+""" 
+Once run this with Ipython, you can play arround and look at all the variables.
+Particulary interesting ones are the ones with "_evolution" since this ones
+store info about each step of the inversion. 
+"""

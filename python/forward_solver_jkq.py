@@ -1,10 +1,9 @@
 #############################################################################
-#                2 LEVEL ATOM ATMOSPHERE SOLVER                             #
+#         2 LEVEL ATOM ATMOSPHERE SOLVER WITH JKQ AS PARAMS                 #
 #                AUTHOR: ANDRES VICENTE AREVALO                             #
 #############################################################################
 import matplotlib.pyplot as plt
 import numpy as np
-from tqdm import tqdm,trange
 import parameters as pm
 import physical_functions as func
 import gaussian_quadrature as gauss
@@ -12,8 +11,10 @@ from scipy.interpolate import PchipInterpolator as mon_spline_interp
 # from jsymbols import jsymbols
 # jsymbols = jsymbols()
 
-zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
+# compute the 1D grid specified in the parameters
+zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)
 
+# compute the selected z points for the nodes 
 nodes_selected = np.zeros(pm.nz)
 nodes_selected[::pm.nodes_sep] = np.ones_like(nodes_selected[::pm.nodes_sep])
 selected = np.array(nodes_selected,dtype=bool)
@@ -24,7 +25,7 @@ for i in range(2,len(selected)):
     elif -5 < zz[i] < 5:
         selected[i] = 0
 
-
+z_nodes = zz[selected]
 nodes_len = int(sum(selected))
 
 #############################################################################
@@ -137,19 +138,15 @@ def solve_profiles( a, r, eps, dep_col, Hd, Jm00_nodes, Jm20_nodes):
     eps: photon destruction probability (eps = Clu/(Aul+Cul))
     dep_col: depolarization colision rate (delta = D^k_u/Aul)
     Hd: Hanle depolarization factor
-    """
-
-    # We define the z0, zl, dz as our heigt grid (just 1D because of a
-    # plane-parallel atmosfere and axial-simetry)
-    zz = np.arange(pm.zl, pm.zu + pm.dz, pm.dz)          # compute the 1D grid
-    z_nodes = zz[selected]
-    
+    Jm00_nodes: Values of the J00 at the specified nodes in z_nodes
+    Jm20_nodes: Values of the J20 at the specified nodes in z_nodes
+    """  
 
     # Define the grid in frequencies ( or wavelengths )
-
-    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)          # compute the 1D grid
+    ww = np.arange(pm.wl, pm.wu + pm.dw, pm.dw)
     wnorm = ww.copy()
 
+    # Interpolate the J00 and J20 to obtain all the points in the zz grid
     interp_J00 = mon_spline_interp(z_nodes, Jm00_nodes, extrapolate=True)
     interp_J20 = mon_spline_interp(z_nodes, Jm20_nodes, extrapolate=True)
 
@@ -169,15 +166,15 @@ def solve_profiles( a, r, eps, dep_col, Hd, Jm00_nodes, Jm20_nodes):
     phy = np.zeros_like(wnorm)
     for i in range(len(wnorm)):
         phy[i] = np.real(func.voigt(wnorm[i], a))
-    phy = phy/trapezoidal(phy, wnorm, 0)          # normalice phy to sum 1
 
+    # normalice phy to sum 1
+    phy = phy/trapezoidal(phy, wnorm, 0)
 
     # Initialaice the intensities vectors to solve the ETR
     # Computed as a tensor in zz, ww, mus
     plank_Ishape = np.repeat(np.repeat(np.ones_like(wnorm)[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
     mu_shape = np.repeat(np.repeat(mus[np.newaxis,:], len(wnorm), axis=0)[np.newaxis, :, :], len(zz), axis=0)
     phy_shape = np.repeat(np.repeat(phy[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
-    # wnorm_shape = np.repeat(np.repeat(wnorm[ :, np.newaxis], len(mus), axis=1)[np.newaxis, :, :], len(zz), axis=0)
     zz_shape = np.repeat(np.repeat(zz[ :, np.newaxis], len(wnorm), axis=1)[:, :, np.newaxis], len(mus), axis=2)
     tau_shape = np.exp(-zz_shape)*(phy_shape + r)
     Jm00_shape = np.repeat(np.repeat(Jm00[ :, np.newaxis], len(wnorm), axis=1)[ :, :, np.newaxis], len(mus), axis=2)
@@ -187,7 +184,6 @@ def solve_profiles( a, r, eps, dep_col, Hd, Jm00_nodes, Jm20_nodes):
     rr = phy_shape/(phy_shape + r)
 
     # ---------------- COMPUTE THE SOURCE FUNCTIONS TO SOLVE THE RTE -----------------------
-
     S00 = (1-eps)*Jm00_shape + eps*plank_Ishape
     S20 = Hd * (1-eps)/(1 + (1-eps)*dep_col) * w2jujl * Jm20_shape
 
@@ -197,10 +193,13 @@ def solve_profiles( a, r, eps, dep_col, Hd, Jm00_nodes, Jm20_nodes):
     SI = rr*SLI + (1 - rr)*plank_Ishape
     SQ = rr*SLQ
 
+    # --------- COMPUTE THE INITIAL INTENSITIES OF THE METHOD AS  PLANK  ------------------
     II = plank_Ishape.copy()
     II[1:] = II[1:]*0
     QQ = np.zeros_like(II)
 
+
+    # ----------------      SOLVE THE RTE        -----------------------
     II, QQ, lambd = RTE_SC_solve(II, QQ, SI, SQ, tau_shape[:,:,-1], mus)
     
     # ---------------- COMPUTE THE COMPONENTS OF THE RADIATIVE TENSOR ----------------------
