@@ -1,6 +1,7 @@
 /***************************************************************
 *        2 LEVEL ATOM ATMOSPHERE SOLVER                        *
 *         AUTHOR: ANDRES VICENTE AREVALO                       *
+* Compilation: gcc -o main_exec main.c -lm                     *
 ****************************************************************/
 #include <stdio.h>
 #include <stdlib.h>

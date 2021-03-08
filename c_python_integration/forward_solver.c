@@ -2,6 +2,10 @@
 *        2 LEVEL ATOM ATMOSPHERE SOLVER                        *
 *         AUTHOR: ANDRES VICENTE AREVALO                       *
 ****************************************************************/
+
+/* compilation: gcc -o forward_solver.so -shared -fPIC -O2 forward_solver.c */
+/* Used in the python programs */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
