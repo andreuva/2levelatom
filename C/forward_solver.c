@@ -200,7 +200,7 @@ void solve_profiles(double a,double r, double eps, double dep_col, double Hd, do
 
     wrapup:
 
-    printf("finished in %i iterations, with tolerance:  %1.2e \n",l, mrc);
+    // printf("finished in %i iterations, with tolerance:  %1.2e \n",l, mrc);
 
     for (i = 0; i < nz; i++){
         for (j = 0; j < nw; j++){

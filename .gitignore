@@ -1,5 +1,7 @@
 *__pycache__*
 *_exec
+*/*_exec
+*/*/*_exec
 *.so
 *_deb
 *.npy
