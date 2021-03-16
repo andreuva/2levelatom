@@ -14,15 +14,15 @@
 // numerical derivative, the weights of chi_2.
 const int mu_sel = 9;
 const double h = 1e-8  , std = 1e-5;
-const double w_I = 1e-1, w_Q = 1e3;
-const int max_iter_inversion = 1000;
+const double w_I = 1e-1, w_Q = 1e4;
+const int max_iter_inversion = 1234;
 
 // Define the solution parameters
-const double a_sol = 1e-4;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
-const double r_sol = 1e-4;                     /* # line strength XCI/XLI */
-const double eps_sol = 1e-3;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
-const double dep_col_sol = 1;                /* # Depolirarization colisions (delta) */
-const double Hd_sol = 0.6;                      /* # Hanle depolarization factor [1/5, 1] */
+const double a_sol = 1e-3;                      /* # dumping Voigt profile a=gam/(2^1/2*sig) */
+const double r_sol = 1e-3;                     /* # line strength XCI/XLI */
+const double eps_sol = 1e-4;                    /* # Phot. dest. probability (LTE=1,NLTE=1e-4) */
+const double dep_col_sol = 0.8;                /* # Depolirarization colisions (delta) */
+const double Hd_sol = 0.5;                      /* # Hanle depolarization factor [1/5, 1] */
 
 
 // Function to generate random numbers (return a pointer to a array)
@@ -166,6 +166,7 @@ int main(){
     double x_u[numpar] = {1, 1, 1, 10 ,1};
     double step_size[numpar] = {1e-2,1e-7,1e-6,1e-1,1e-1};
     double xs[numpar][numpar], beta[numpar];
+    float progres;
 
     double chi2_0, chi2_1, cc=1;
     int new_point = 1; 
@@ -202,6 +203,18 @@ int main(){
 
     for (itt = 0; itt < max_iter_inversion; itt++){
 
+        fprintf(stdout,"Step %i of %i\n",itt, max_iter_inversion);
+        progres =  100.0 * itt/ max_iter_inversion ;
+        fprintf(stdout, "[");
+        for (i=0; i<70; i++) {
+            if ( i < progres*7/10 ) {
+                fprintf(stdout, "#");
+            }else{
+                fprintf(stdout, "-");
+            }
+        }
+        fprintf(stdout, "] %1.2f %%\n", progres);
+
         if(new_point){
             surroundings_calc(x_0, xs, h);
             check_range(x_0, xs, x_l, x_u);
@@ -222,7 +235,6 @@ int main(){
         }
        
         chi2_1 = chi2_calc(x_1, I_obs_sol, Q_obs_sol, I_1, Q_1, std, w_I, w_Q);
-        fprintf(stdout,"Step %i of the inversion\n",itt);
         fprintf(stdout,"Total Chi^2 %1.6e\n with step parameter of %1.3e\n",chi2_1,cc);
         
         // If we have very good loss stop
@@ -279,14 +291,20 @@ int main(){
     fp=fopen("/home/andreuva/Documents/2 level atom/2levelatom/figures/parameters_inverted.txt","w");
 
     fprintf(fp, "\nFINISHED AFTER %i ITTERATIONS\n", itt);
-    fprintf(fp, "\n--------------------------------------------------------------------\n");
+    fprintf(fp, "\n------------------------------------------------------------------------\n");
     fprintf(fp, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");
-    fprintf(fp, "--------------------------------------------------------------------\n");
-    fprintf(fp, "  a = %1.8e \t\t |  a_sol = %1.8e\n  r = %1.8e \t\t |  r_sol = %1.8e\
-    \n  eps = %1.8e \t\t |  eps_sol = %1.8e\n  delta = %1.8e \t |  delta_sol = %1.8e\
-    \n  Hd = %1.8e \t\t |  Hd_sol = %1.8e\n",\
+    fprintf(fp, "------------------------------------------------------------------------\n");
+    fprintf(fp, "  a = %1.8e \t\t\t |  a_sol = %1.8e\n  r = %1.8e \t\t\t |  r_sol = %1.8e\
+    \n  eps = %1.8e \t\t\t |  eps_sol = %1.8e\n  delta = %1.8e \t\t |  delta_sol = %1.8e\
+    \n  Hd = %1.8e \t\t\t |  Hd_sol = %1.8e\n",\
     x_0[0], x_sol[0], x_0[1], x_sol[1], x_0[2], x_sol[2], x_0[3], x_sol[3], x_0[4], x_sol[4]);
-    fprintf(fp, "--------------------------------------------------------------------\n");
+    fprintf(fp, "------------------------------------------------------------------------\n");
+    fprintf(fp, "\t\tEXECUTION PARAMETERS\n");
+    fprintf(fp, "------------------------------------------------------------------------\n");
+    fprintf(fp, " Maximum iterrations = %i\n Noise of the profiles = %f\
+                \n Selected direction of observation = %i\n step of the derivative = %f\
+                \n weigths:\t w_I = %f\t w_Q = %f\n",max_iter_inversion,std,mu_sel,h,w_I,w_Q);
+    fprintf(fp, "------------------------------------------------------------------------\n");
     fclose (fp);
 
     return 0;
