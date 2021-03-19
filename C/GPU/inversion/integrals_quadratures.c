@@ -3,8 +3,8 @@ Gauss-Legendre integration function, gauleg, from "Numerical Recipes in C"
 (Cambridge Univ. Press) by W.H. Press, S.A. Teukolsky, W.T. Vetterling, and
 B.P. Flannery
 *******************************************************************************/
+#include "includes_definitions.h"
 
-#define EPS 3.0e-16 /* EPS is the relative precision. */
 void gauleg(double x1, double x2, double x[], double w[], int n)
 /*******************************************************************************
 Given the lower and upper limits of integration x1 and x2, and given n, this
@@ -64,11 +64,11 @@ double num_gaus_quad(double y[], double weigths[], int nn){
 Integrate a 1D array by the composite trapezoidal rule
 Author: Andres Vicente Arevalo 
 *******************************************************************************/
-double trapezoidal(double y[], double x[], int n){
+double trapezoidal(double yy[], double xx[], int nn){
     double Integral = 0.;
 
-    for (int i = 1; i < n; i++){
-        Integral = Integral + (y[i-1] + y[i])*(x[i]-x[i-1])/2.;
+    for (int i = 1; i < nn; i++){
+        Integral = Integral + (yy[i-1] + yy[i])*(xx[i]-xx[i-1])/2.;
     }
     return Integral;
 }
