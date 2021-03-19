@@ -1,0 +1,14 @@
+Commands To compilate the and assemble the code:
+  510  nvcc -c routines_gpu.cu -o routines_gpu.o
+  511  gcc -c routines_cpu.c -o routines_cpu.o -I /usr/local/cuda-11.2/include/. -lstdc++
+  512  gcc -c main.c -o main.o -I /usr/local/cuda-11.2/include/. -lstdc++
+  513  gcc -o forward_solver routines_gpu.o routines_cpu.o main.o -lm -L /usr/local/cuda-11.2/lib64/ -lcudart -lstdc++
+To run the code:
+  514	./forward_solver
+To check the usage of the GPU in other terminal to see that is running in the GPU:
+  515  nvidia-smi
+To run the CPU version first compile it as:
+  516 gcc -o forward_solver_c forward_solver.c -lm
+And then run it as:
+  517 ./forward_solver_c
+
