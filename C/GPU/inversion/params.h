@@ -31,4 +31,4 @@
 #define STD  1.0e-5
 #define WI  1.0e-1
 #define WQ  1.0e4
-#define max_iter_inversion  1234
+#define max_iter_inversion  100

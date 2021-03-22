@@ -134,7 +134,7 @@ int main(){
     /* define array, counter, and file name, and open the file */
 
     FILE *fp;
-    fp=fopen("/home/andreuva/Documents/2 level atom/2levelatom/figures/profiles.txt","w");
+    fp=fopen("./figures/profiles.txt","w");
     
     fprintf(fp, "# index, I_solution, Q_solution, I_inverted, Q_inverted\n");
     for(i = 0; i < nw; i++){
@@ -143,7 +143,7 @@ int main(){
     }
     fclose (fp);
 
-    fp=fopen("/home/andreuva/Documents/2 level atom/2levelatom/figures/parameters_inverted.txt","w");
+    fp=fopen("./figures/parameters_inverted.txt","w");
 
     fprintf(fp, "\nFINISHED AFTER %i ITTERATIONS\n", itt);
     fprintf(fp, "\n------------------------------------------------------------------------\n");
