@@ -25,7 +25,7 @@ integrals_quadratures.o : integrals_quadratures.c includes_definitions.h
 
 inversion_GD.o : inversion_GD.c params.h includes_definitions.h
 	gcc -c inversion_GD.c -o inversion_GD.o -I /usr/local/cuda-11.2/include/. -lstdc++
-	mkdir figures
+	mkdir -p figures
 
 inversion_routines.o : inversion_routines.c params.h includes_definitions.h
 	gcc -c inversion_routines.c -o inversion_routines.o -I /usr/local/cuda-11.2/include/. -lstdc++
