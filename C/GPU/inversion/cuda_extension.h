@@ -16,8 +16,8 @@ extern "C"{
     #include "params.h"
 
     // Define the grid in heights and wavelengths based on the parameters
-    #define nz ((zu-zl)/dz + 1)                /* # number of points in the z axes */
-    #define nw ((wu-wl)/dw + 1)                /* # points to sample the spectrum */
+    #define nz int((zu-zl)/dz + 1)                /* # number of points in the z axes */
+    #define nw int((wu-wl)/dw + 1)                /* # points to sample the spectrum */
 
     void RTE_SC_solve(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][qnd], double SQ[nz][nw][qnd], double lambda[][nw][qnd], double tau[nz][nw], double mu[qnd]);
 }
