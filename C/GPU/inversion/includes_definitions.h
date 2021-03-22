@@ -18,7 +18,7 @@ const static short nw = (wu-wl)/dw + 1;                /* # points to sample the
 /**************************     "forward_solver.c"      *****************************/
 // Forward solver functions for solving the 2 level atom problem in 1D with the SC method
 double complex voigt(double v, double a);
-void psi_calc(double deltaum[], double deltaup[], double psim[], double psio[], double psip[], int mode);
+// void psi_calc(double deltaum[], double deltaup[], double psim[], double psio[], double psip[], int mode);
 void RTE_SC_solve(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][qnd], double SQ[nz][nw][qnd], double lambda[][nw][qnd], double tau[nz][nw], double mu[qnd]);
 
 // Actual Forward solver that returns the I and Q of a given parameters
