@@ -27,7 +27,7 @@ extern "C"{
 
     /**************************   "inversion_routines.c"    ****************************/
     // Some routines that uses random numbers to generate the noise of the "observed" profile
-    // double* generate(int n);
+    double* generate(int n);
     void add_noise_1D(int nn, double array[], double std);
 
     // Calculations of chi2 and implicitly the profiles
@@ -53,21 +53,19 @@ const double eps_sol = 1e-4;                    /* # Phot. dest. probability (LT
 const double dep_col_sol = 0.8;                /* # Depolirarization colisions (delta) */
 const double Hd_sol = 0.5;                      /* # Hanle depolarization factor [1/5, 1] */
 
-__managed__ double I_full[nz][nw][qnd], Q_full[nz][nw][qnd];
-__managed__ double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw], I_obs_sol[nw], Q_obs_sol[nw];
-__managed__ double x_0[numpar], x_1[numpar], x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
-__managed__ double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
-__managed__ double x_u[numpar] = {1, 1, 1, 10 ,1};
-
-__managed__ double xs[numpar][numpar], beta[numpar];
-__managed__ float progres;
-
-__managed__ double chi2_0, chi2_1, cc=1;
-
 int main(){
 
     int i, j, k, itt;
+    double I_full[nz][nw][qnd], Q_full[nz][nw][qnd];
+    double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw], I_obs_sol[nw], Q_obs_sol[nw];
+    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
+    double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
+    double x_u[numpar] = {1, 1, 1, 10 ,1};
     double step_size[numpar] = {1e-2,1e-7,1e-6,1e-1,1e-1};
+    double xs[numpar][numpar], beta[numpar];
+    float progres;
+
+    double chi2_0, chi2_1, cc=1;
     int new_point = 1; 
 
     fprintf(stdout,"=====================================\n");
