@@ -18,7 +18,13 @@ SRC_DIR = $(CUR_DIR)/src/cuda
 SRC_CUDA = $(wildcard $(SRC_DIR)/*.cu)
 CUDA_OBJECTS = $(patsubst $(SRC_DIR)/%.cu, $(BIN_DIR)/%.o, $(SRC_CUDA))
 else
+
+ifeq ($(JKQ),1)
+SRC_DIR = $(CUR_DIR)/src/jkq
+else
 SRC_DIR = $(CUR_DIR)/src
+endif
+
 endif
 
 SRC = $(wildcard $(SRC_DIR)/*.c)
@@ -32,10 +38,10 @@ inversion_gpu : dirs $(CUDA_OBJECTS) $(OBJECTS)
 	$(CC) -o inversion_gpu $(OBJECTS) $(CUDA_OBJECTS) $(NVCCFLAGS)
 
 # Compilation comands
-$(BIN_DIR)/%.o : $(SRC_DIR)/%.cu
+$(BIN_DIR)/%.o : $(SRC_DIR)/%.cu $(HEADERS)
 	$(NVCC) $(NVCCFLAGS) -c $< -o $@
 
-$(BIN_DIR)/%.o : $(SRC_DIR)/%.c
+$(BIN_DIR)/%.o : $(SRC_DIR)/%.c $(HEADERS)
 	$(CC) $(CCFLAGS) -c $< -o $@
 
 else
@@ -43,7 +49,7 @@ else
 inversion : dirs $(OBJECTS)
 	$(CC) -o inversion $(OBJECTS) $(CCFLAGS)
 
-$(BIN_DIR)/%.o : $(SRC_DIR)/%.c
+$(BIN_DIR)/%.o : $(SRC_DIR)/%.c $(HEADERS)
 	$(CC) $(CCFLAGS) -c $< -o $@
 
 endif
