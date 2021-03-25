@@ -22,7 +22,7 @@ else
 ifeq ($(JKQ),1)
 SRC_DIR = $(CUR_DIR)/src/jkq
 else
-SRC_DIR = $(CUR_DIR)/src
+SRC_DIR = $(CUR_DIR)/src/standard
 endif
 
 endif
