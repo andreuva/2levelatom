@@ -10,7 +10,7 @@ FIG_DIR = $(CUR_DIR)/figures
 CC = gcc
 NVCC = nvcc
 
-CCFLAGS = -lstdc++ -lm -I /usr/local/cuda-11.2/include/.
+CCFLAGS = -lstdc++ -g -lm -I /usr/local/cuda-11.2/include/.
 NVCCFLAGS = -lm -L /usr/local/cuda-11.2/lib64/ -lcudart -lstdc++
 
 ifeq ($(CUDA),1)
