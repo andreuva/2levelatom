@@ -15,12 +15,15 @@ int main(){
 
     int i, j, k, itt;
     double I_full[nz][nw][qnd], Q_full[nz][nw][qnd];
-    double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw], I_obs_sol[nw], Q_obs_sol[nw];
-    double Jm00[NODES], Jm20[NODES];
-    double x_0[numpar], x_1[numpar], x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
+    double I_0[nw], Q_0[nw], I_1[nw], Q_1[nw];
+    double I_obs_sol[nw], Q_obs_sol[nw], I_init[nw], Q_init[nw];
+    double Jm00_0[NODES], Jm20_0[NODES], Jm00_1[NODES], Jm20_1[NODES];
+    double x_0[numpar], x_1[numpar];
+    double x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
     double x_u[numpar] = {1, 1, 1, 10 ,1};
     double step_size[numpar] = {1e-2,1e-7,1e-6,1e-1,1e-1};
+    double Jm_step_size = 1e-4;
     double xs[numpar][numpar], beta[numpar];
     double Jm00s[NODES][NODES], betaj00[NODES];
     double Jm20s[NODES][NODES], betaj20[NODES];
@@ -47,47 +50,49 @@ int main(){
     add_noise_1D(nw, Q_obs_sol, STD);
 
     // initialice the parameters to start the inversion
-    // for (i = 0; i < numpar; i++){
-    //     x_0[i] = (double)rand()/(double)(RAND_MAX) * (x_u[i] - x_l[i]) + x_l[i];
-    // }
     x_0[0] = 1e-5; x_0[1] = 1e-5; x_0[2] = 1e-3;  x_0[3] = 1e-1; x_0[4] = 0.6;
+    for (i = 0; i < NODES; i++) {
+        Jm00_0[i] = 0;
+        Jm20_0[i] = 1;
+    }
 
     fprintf(stdout, "\nINITIAL PARAMETERS:\n");
     fprintf(stdout, " a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n Hd = %1.8e\n\n",\
                           x_0[0],     x_0[1],        x_0[2],        x_0[3],       x_0[4]);
     fprintf(stdout,"=====================================\n");
     
-    chi2_0 = chi2_calc(x_0, Jm00, Jm20, I_obs_sol, Q_obs_sol, I_0, Q_0, WJ00, WJ20, STD, WI, WQ);
+    chi2_0 = chi2_calc(x_0, Jm00_0, Jm20_0, I_obs_sol, Q_obs_sol, 
+                       I_0, Q_0, WJ00, WJ20, STD, WI, WQ, 0);
+
+    for (i = 0; i < nw; i++) {
+        I_init[i] = I_0[i];
+        Q_init[i] = Q_0[i];
+    }
 
     for (itt = 0; itt < max_iter_inversion; itt++){
 
-        fprintf(stdout,"Step %i of %i\n",itt, max_iter_inversion);
-        progres =  100.0 * itt/ max_iter_inversion ;
-        fprintf(stdout, "[");
-        for (i=0; i<70; i++) {
-            if ( i < progres*7/10 ) {
-                fprintf(stdout, "#");
-            }else{
-                fprintf(stdout, "-");
-            }
-        }
-        fprintf(stdout, "] %1.2f %%\n", progres);
+        progres_bar(itt, max_iter_inversion);
 
         if(new_point){
             surroundings_calc(numpar, x_0, xs, HH);
-            surroundings_calc(NODES, Jm00, Jm00s, HH);
-            surroundings_calc(NODES, Jm20, Jm20s, HH);
+            surroundings_calc(NODES, Jm00_0, Jm00s, HH);
+            surroundings_calc(NODES, Jm20_0, Jm20s, HH);
             check_range(x_0, xs, x_l, x_u);
-            compute_gradient(x_0, xs, beta, 
-                             Jm00, Jm00s, betaj00,
-                             Jm20, Jm20s, betaj20, 
-                             I_obs_sol, Q_obs_sol, HH, STD, WJ00, WJ20, WI, WQ);
+            compute_gradient(x_0, xs, beta,
+                             Jm00_0, Jm00s, betaj00,
+                             Jm20_0, Jm20s, betaj20,
+                             I_obs_sol, Q_obs_sol,
+                             HH, STD, WJ00, WJ20, WI, WQ);
         }
 
         for (i = 0; i < numpar; i++){
             x_1[i] = x_0[i] - step_size[i]*beta[i]*cc;
         }
 
+        for (i = 0; i < NODES; i++) {
+            Jm00_1[i] = Jm00_0[i] - Jm_step_size*betaj00[i]*cc;
+            Jm20_1[i] = Jm20_0[i] - Jm_step_size*betaj20[i]*cc;
+        }
 
         for (i=0; i<numpar; i++){
             if (x_1[i] > x_u[i]){
@@ -97,7 +102,9 @@ int main(){
             }
         }
 
-        chi2_1 = chi2_calc(x_1, Jm00, Jm20, I_obs_sol, Q_obs_sol, I_1, Q_1, WJ00, WJ20, STD, WI, WQ);
+        chi2_1 = chi2_calc(x_1, Jm00_1, Jm20_1, I_obs_sol, Q_obs_sol, 
+                                I_1,  Q_1, WJ00, WJ20, STD, WI, WQ, 1);
+        
         fprintf(stdout,"Total Chi^2 %1.6e\n with step parameter of %1.3e\n",chi2_1,cc);
         
         // If we have very good loss stop
@@ -109,14 +116,17 @@ int main(){
             for (i = 0; i < numpar; i++){
                 x_0[i] = x_1[i];
             }
-            cc = cc*1.25;
-            new_point = 1;
-            chi2_0 = chi2_1;
-
+            for (i = 0; i < NODES; i++) {
+                Jm00_0[i] = Jm00_1[i];
+                Jm20_0[i] = Jm20_1[i];
+            }
             for (j = 0; j < nw; j++){
                 I_0[j] = I_1[j];
                 Q_0[j] = Q_1[j];
             }
+            cc = cc*1.25;
+            new_point = 1;
+            chi2_0 = chi2_1;
 
             fprintf(stdout,"=====================================\n");
             fprintf(stdout, "\nNew parameters:\n");
@@ -133,33 +143,33 @@ int main(){
     fprintf(stdout, "\n--------------------------------------------------------------------\n");
     fprintf(stdout, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");
     fprintf(stdout, "--------------------------------------------------------------------\n");
-    fprintf(stdout, "  a = %1.8e \t\t |  a_sol = %1.8e\n  r = %1.8e \t\t |  r_sol = %1.8e\
-    \n  eps = %1.8e \t\t |  eps_sol = %1.8e\n  delta = %1.8e \t |  delta_sol = %1.8e\
-    \n  Hd = %1.8e \t\t |  Hd_sol = %1.8e\n",\
+    fprintf(stdout, "  a = %1.10e \t\t |  a_sol = %1.10e\n  r = %1.10e \t\t |  r_sol = %1.10e\
+    \n  eps = %1.10e \t\t |  eps_sol = %1.10e\n  delta = %1.10e \t |  delta_sol = %1.10e\
+    \n  Hd = %1.10e \t\t |  Hd_sol = %1.10e\n",\
     x_0[0], x_sol[0], x_0[1], x_sol[1], x_0[2], x_sol[2], x_0[3], x_sol[3], x_0[4], x_sol[4]);
     fprintf(stdout, "--------------------------------------------------------------------\n");
     
     /* define array, counter, and file name, and open the file */
 
     FILE *fp;
-    fp=fopen("./figures/profiles.txt","w");
+    fp=fopen("./figures/profiles_jkq.txt","w");
     
-    fprintf(fp, "# index, I_solution, Q_solution, I_inverted, Q_inverted\n");
+    fprintf(fp, "# index, I_solution, Q_solution, I_inverted, Q_inverted, I_initial, Q_initial\n");
     for(i = 0; i < nw; i++){
-       fprintf (fp, " %i , %1.8e , %1.8e , %1.8e , %1.8e\n",\
-                    i, I_obs_sol[i], Q_obs_sol[i], I_0[i], Q_0[i]);
+       fprintf (fp, " %i , %1.10e , %1.10e , %1.10e , %1.10e , %1.10e , %1.10e\n",\
+                    i, I_obs_sol[i], Q_obs_sol[i], I_0[i], Q_0[i], I_init[i], Q_init[i]);
     }
     fclose (fp);
 
-    fp=fopen("./figures/parameters_inverted.txt","w");
+    fp=fopen("./figures/parameters_jkq_inverted.txt","w");
 
     fprintf(fp, "\nFINISHED AFTER %i ITTERATIONS\n", itt);
     fprintf(fp, "\n------------------------------------------------------------------------\n");
     fprintf(fp, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");
     fprintf(fp, "------------------------------------------------------------------------\n");
-    fprintf(fp, "  a = %1.8e \t\t\t |  a_sol = %1.8e\n  r = %1.8e \t\t\t |  r_sol = %1.8e\
-    \n  eps = %1.8e \t\t\t |  eps_sol = %1.8e\n  delta = %1.8e \t\t |  delta_sol = %1.8e\
-    \n  Hd = %1.8e \t\t\t |  Hd_sol = %1.8e\n",\
+    fprintf(fp, "  a = %1.10e \t\t\t |  a_sol = %1.10e\n  r = %1.10e \t\t\t |  r_sol = %1.10e\
+    \n  eps = %1.10e \t\t\t |  eps_sol = %1.10e\n  delta = %1.10e \t\t |  delta_sol = %1.10e\
+    \n  Hd = %1.10e \t\t\t |  Hd_sol = %1.10e\n",\
     x_0[0], x_sol[0], x_0[1], x_sol[1], x_0[2], x_sol[2], x_0[3], x_sol[3], x_0[4], x_sol[4]);
     fprintf(fp, "------------------------------------------------------------------------\n");
     fprintf(fp, "\t\tEXECUTION PARAMETERS\n");

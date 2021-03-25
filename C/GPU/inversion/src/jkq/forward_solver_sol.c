@@ -5,7 +5,17 @@
 
 #include "includes_definitions.h"
 
-/* Solver of the Radiative transfer equations by the SC method and compute of the lambda operator */
+// *  Solver of the Radiative transfer equations by the SC method (and lambda)
+// *  INPUTS:
+// *  SI (double[nz][nw][qnd]) : Source function of the intensity
+// *  SQ (double[nz][nw][qnd]) : Source function of the Q
+// *  tau (double[nz][nw]) : opacity of the material in vertical for each w
+// *  mu (double[qnd]) : directions (cos(theta)) of rays in the quadrature
+// *
+// *  OUTPUTS:    
+// *  lambda (double[nz][nw][qnd]) : lambda operator to compute the next SI
+// *  II (double[nz][nw][qnd]) : intensity of the atmosphere in each ray/wav
+// *  QQ (double[nz][nw][qnd]) : intensity of the atmosphere in each ray/wav
 void RTE_SC_solve_sol(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][qnd],\
                  double SQ[nz][nw][qnd], double lambda[][nw][qnd], double tau[nz][nw], double mu[qnd]){
     
@@ -86,26 +96,20 @@ void RTE_SC_solve_sol(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][
 /* -------------------------------------------------------------------*/
 /* --------------- SUBROUTINE TO SOLVE THE PROFILES ------------------*/
 /* -------------------------------------------------------------------*/
-void solve_profiles_sol(double a,double r, double eps, double dep_col, double Hd, double I_res[nz][nw][qnd], double Q_res[nz][nw][qnd]) {    
-    
-    // fprintf(stdout, "\n------------------- PARAMETERS OF THE PROBLEM ---------------------\n");
-    // fprintf(stdout, "optical thicknes of the lower boundary:            %1.1e \n", zl);
-    // fprintf(stdout, "optical thicknes of the upper boundary:            %1.1e \n", zu);
-    // fprintf(stdout, "resolution in the z axis:                          %1.6e \n", dz);
-    // fprintf(stdout, "total number of points in z:                       %i    \n", nz);
-    // fprintf(stdout, "lower/upper frequency limit :                      %1.6e   %1.6e \n", wl, wu);
-    // fprintf(stdout, "number points to sample the spectrum:              %i \n", nw);
-    // fprintf(stdout, "nodes in the gaussian quadrature (# dirs):         %i \n", qnd);
-    // fprintf(stdout, "T (isotermic) of the medium:                       %i \n", T);
-    // fprintf(stdout, "dumping Voigt profile:                             %1.6e \n", a);
-    // fprintf(stdout, "line strength XCI/XLI:                             %1.6e \n", r);
-    // fprintf(stdout, "Phot. dest. probability (LTE=1,NLTE=1e-4):         %1.6e \n", eps);
-    // fprintf(stdout, "Depolirarization colisions (delta):                %1.6e \n", dep_col);
-    // fprintf(stdout, "Hanle depolarization factor [1/5, 1]:              %1.6e \n", Hd);
-    // fprintf(stdout, "angular momentum of the levels (Ju, Jl):           (%i,%i) \n", ju, jl);
-    // fprintf(stdout, "Tolerance for finding the solution:                %1.6e \n", tolerance);
-    // fprintf(stdout, "------------------------------------------------------------------\n\n");
 
+// /* Compute the consistent solution of the profiles a.k.a forward solver    *
+// *  INPUTS:                                                                 *    
+// *  a (double) : dumping parameter of the profiles                          *
+// *  r (double) : line strength vs continium                                 *
+// *  eps (double) : photon destruction probavility (how much LTE is)         *
+// *  dep_col (double) : effect of depolaraizing colisions                    *
+// *  Hd (double) : effect of the Hanle effect                                *
+// *
+// *  OUTPUTS:                                                                *
+// *  I_res (double[nz][nw][qnd]) : intensity of each ray/wavelength/height   *
+// *  Q_res (double[nz][nw][qnd]) : Q of each ray/wavelength/height           *
+void solve_profiles_sol(double a,double r, double eps, double dep_col, double Hd, 
+                        double I_res[nz][nw][qnd], double Q_res[nz][nw][qnd]) {    
 
     int i,j,k,l,m;               /* define the integers to count the loops*/
 

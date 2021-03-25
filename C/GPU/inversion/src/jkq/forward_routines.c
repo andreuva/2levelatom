@@ -4,8 +4,14 @@
 /**********************************************************************/
 #include "includes_definitions.h"
 
-/* Function to compute the voigt profile of a line giveng the dumping 
- * nd the frequency at wich to compute it                             */
+// /* Function to compute the voigt profile of a line giveng the dumping *
+// *  and the frequency at wich to compute it                            *
+// *  INPUTS:                                                            *
+// *  v (double) : frequency (normaliced) at wich compute the value      *
+// *  a (double) : dumping parameter of the Voigt profile                *
+// *
+// *  OUTPUTS:                                                           *
+// *  t (double) : value of the profile at the point v (returned)        */
 double complex voigt(double v, double a){
 
     double s = fabs(v)+a;
@@ -46,11 +52,18 @@ double complex voigt(double v, double a){
     return t;
 }
 
-/* Function to compute the coeficients of the SC method for lineal and quadratic */
+// /* Function to compute the coeficients of the SC method              *
+// *  INPUTS:                                                           *
+// *  deltaum (double[nw]) : delta tau of the backwards interval        *
+// *  deltaup (double[nw]) : delta tau of the forward interval          *
+// *  mode (int) : flag to compute the linear or quadratic coeficients  *
+// *
+// *  OUTPUTS:                                                          *
+// *  psim (double[nw]) : coeficient of the SC method (backwards)       *
+// *  psio (double[nw]) : coeficient of the SC method (center)          *
+// *  psip (double[nw]) : coeficient of the SC method (forward)         */
 void psi_calc(double deltaum[], double deltaup[], \
-              double psim[], double psio[], double psip[], int mode)
-{
-    // Compute of the psi coefficients in the SC method
+              double psim[], double psio[], double psip[], int mode){
 
     double U0[nw], U1[nw], U2[nw];
     int j;
@@ -92,7 +105,16 @@ void psi_calc(double deltaum[], double deltaup[], \
     return;
 }
 
-/* Solver of the Radiative transfer equations by the SC method and compute of the lambda operator */
+// /* Solver of the Radiative transfer equations by the SC method            *
+// *  INPUTS:                                                                *
+// *  SI (double[nz][nw][qnd]) : Source function of the intensity            *
+// *  SQ (double[nz][nw][qnd]) : Source function of the Q                    *
+// *  tau (double[nz][nw]) : opacity of the material in vertical for each w  *
+// *  mu (double[qnd]) : directions (cos(theta)) of rays in the quadrature   *
+// *
+// *  OUTPUTS:                                                               *  
+// *  II (double[nz][nw][qnd]) : intensity of the atmosphere in each ray/wav *
+// *  QQ (double[nz][nw][qnd]) : intensity of the atmosphere in each ray/wav */
 void RTE_SC_solve(double II[][nw][qnd], double QQ[][nw][qnd], double SI[nz][nw][qnd],\
                  double SQ[nz][nw][qnd], double tau[nz][nw], double mu[qnd]){
     

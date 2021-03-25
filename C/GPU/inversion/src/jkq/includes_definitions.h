@@ -45,7 +45,7 @@ double chi2_calc(double params[numpar], double Jm00[NODES]      , double Jm20[NO
                                         double I_obs_sol[nw]    , double Q_obs_sol[nw],
                                         double I_obs[nw]        , double Q_obs[nw],
                                         double w_j00            , double w_j20,
-                 double std,            double w_I              , double w_Q);
+                 double std,            double w_I              , double w_Q    , int JN);
 
 // compute the neighbor points of a given parameters
 void surroundings_calc(int nn, double x_0[numpar], double surroundings[numpar][numpar], double hh);
@@ -58,6 +58,8 @@ void compute_gradient(double params[numpar], double surroundings[numpar][numpar]
                       double I_obs_sol[nw],  double Q_obs_sol[nw], double hh, double std,
                       double w_j00,          double w_j20,
                       double w_I,            double w_Q);
+
+void progres_bar(int itt, int max_itt);
 
 /**************************   "integrals_quadratures.c"    ****************************/
 // integrals and quadrature functions
