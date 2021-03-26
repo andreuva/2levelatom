@@ -62,7 +62,7 @@ int main(){
     fprintf(stdout,"=====================================\n");
     
     chi2_0 = chi2_calc(x_0, Jm00_0, Jm20_0, I_obs_sol, Q_obs_sol, 
-                       I_0, Q_0, WJ00, WJ20, STD, WI, WQ, 0);
+                       I_0, Q_0, WJ00, WJ20, STD, WI, WQ, 1);
 
     for (i = 0; i < nw; i++) {
         I_init[i] = I_0[i];
@@ -104,9 +104,9 @@ int main(){
 
         chi2_1 = chi2_calc(x_1, Jm00_1, Jm20_1, I_obs_sol, Q_obs_sol, 
                                 I_1,  Q_1, WJ00, WJ20, STD, WI, WQ, 1);
-        
+
         fprintf(stdout,"Total Chi^2 %1.6e\n with step parameter of %1.3e\n",chi2_1,cc);
-        
+
         // If we have very good loss stop
         if (chi2_1 < 10){
             break;
@@ -138,7 +138,7 @@ int main(){
             new_point = 0;
         }
     }
-    
+
     fprintf(stdout, "\nFINISHED AFTER %i ITTERATIONS\n", itt);
     fprintf(stdout, "\n--------------------------------------------------------------------\n");
     fprintf(stdout, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");
@@ -152,8 +152,8 @@ int main(){
     /* define array, counter, and file name, and open the file */
 
     FILE *fp;
+
     fp=fopen("./figures/profiles_jkq.txt","w");
-    
     fprintf(fp, "# index, I_solution, Q_solution, I_inverted, Q_inverted, I_initial, Q_initial\n");
     for(i = 0; i < nw; i++){
        fprintf (fp, " %i , %1.10e , %1.10e , %1.10e , %1.10e , %1.10e , %1.10e\n",\
@@ -161,8 +161,15 @@ int main(){
     }
     fclose (fp);
 
-    fp=fopen("./figures/parameters_jkq_inverted.txt","w");
+    fp=fopen("./figures/radiation_jkq.txt","w");
+    fprintf(fp, "# index, zz,  Jm00, Jm20\n");
+    for(i = 0; i < nw; i++){
+       fprintf (fp, " %i , %1.3e , %1.10e , %1.10e\n",\
+                      i, zl + dz*i, Jm00_0[i], Jm20_0[i]);
+    }
+    fclose (fp);
 
+    fp=fopen("./figures/parameters_jkq_inverted.txt","w");
     fprintf(fp, "\nFINISHED AFTER %i ITTERATIONS\n", itt);
     fprintf(fp, "\n------------------------------------------------------------------------\n");
     fprintf(fp, "\tINVERTED PARAMETERS\t | \tSOLUTION PARAMETERS\t\n");

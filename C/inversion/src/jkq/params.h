@@ -33,7 +33,7 @@
 #define WQ  1.0e4
 #define WJ00  1.0e6
 #define WJ20  1.0e8
-#define max_iter_inversion  1000
+#define max_iter_inversion  2000
 
 // // Define the parameters for the JKQ inversion
 // #define NODES 10
