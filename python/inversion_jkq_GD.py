@@ -11,6 +11,7 @@ import parameters as pm
 from multiprocessing import Pool
 import os
 from datetime import datetime
+from scipy.stats import norm
 import shelve
 
 ##########################     SUBROUTINES     ##############################
@@ -38,10 +39,15 @@ def chi2(params , I_obs_sol, Q_obs_sol, std, w_I, w_Q, w_j00, w_j20, epsI=1, eps
     I_obs = I[-1,:,mu].copy()
     Q_obs = Q[-1,:,mu].copy()
 
-    # Compute the different parts of the cost function and add them together
-    chi2_p = np.sum(w_I*(I_obs-I_obs_sol)**2/std**2 + w_Q*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)/(w_I + w_Q)
+    xx = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), pm.nw)
+    wprof = norm.pdf(xx)
+    xx = np.linspace(norm.ppf(0.0001), norm.ppf(0.9999), len(Jm00))
+    wrad = norm.pdf(xx)
 
-    chi2_r = np.sum(w_j00*(Jm00-Jm00_new)**2/epsI**2 + w_j20*(Jm20 - Jm20_new)**2/epsQ**2 )/(2*fs.nodes_len)/(w_j00 + w_j20)
+    # Compute the different parts of the cost function and add them together
+    chi2_p = np.sum(w_I*wprof*(I_obs-I_obs_sol)**2/std**2 + w_Q*wprof*(Q_obs-Q_obs_sol)**2/std**2)/(2*I_obs.size)/(w_I + w_Q)
+
+    chi2_r = np.sum(w_j00*wrad*(Jm00-Jm00_new)**2/epsI**2 + w_j20*wrad*(Jm20 - Jm20_new)**2/epsQ**2 )/(2*fs.nodes_len)/(w_j00 + w_j20)
     chi2 = (chi2_p + lambd*chi2_r)/(1 + lambd)
 
     # print(f'Chi^2 profiles: {chi2_p}\t Chi^2 regularization: {chi2_r}')
