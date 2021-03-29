@@ -212,18 +212,18 @@ void compute_gradient(double params[numpar], double surroundings[numpar][numpar]
     double chi2jkq[NODES];
     int i;
 
-    chi2_pivot = chi2_calc(params, Jm00, Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, std, w_j00, w_j20, w_I, w_Q, 0);
+    chi2_pivot = chi2_calc(params, Jm00, Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, w_j00, w_j20, std,  w_I, w_Q, 0);
 
     for (i=0; i<numpar; i++) {
-        chi2s[i] = chi2_calc(surroundings[i], Jm00, Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, std, w_j00, w_j20, w_I, w_Q, 0);
+        chi2s[i] = chi2_calc(surroundings[i], Jm00, Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, w_j00, w_j20, std,  w_I, w_Q, 0);
         beta[i] = (chi2s[i] - chi2_pivot)/2*hh;
     }
 
     for (i=0; i < NODES; i++) {
-        chi2jkq[i] = chi2_calc(params, Jm00s[i], Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, std, w_j00, w_j20, w_I, w_Q, 0);
+        chi2jkq[i] = chi2_calc(params, Jm00s[i], Jm20, I_obs_sol, Q_obs_sol, I_obs, Q_obs, w_j00, w_j20, std,  w_I, w_Q, 0);
         betaj00[i] = (chi2jkq[i] - chi2_pivot)/2*hh;
 
-        chi2jkq[i] = chi2_calc(params, Jm00, Jm20s[i], I_obs_sol, Q_obs_sol, I_obs, Q_obs, std, w_j00, w_j20, w_I, w_Q, 0);
+        chi2jkq[i] = chi2_calc(params, Jm00, Jm20s[i], I_obs_sol, Q_obs_sol, I_obs, Q_obs, w_j00, w_j20, std,  w_I, w_Q, 0);
         betaj20[i] = (chi2jkq[i] - chi2_pivot)/2*hh;
     }
 

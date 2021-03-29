@@ -96,19 +96,19 @@ void solve_profiles(double a,double r, double eps, double dep_col, double Hd,
     RTE_SC_solve(II, QQ, SI, SQ, taus, mus);
 
     /* Check for negative intensities to stop and report a problem */
-    for (i = 0; i < nz; i++){ 
-        for (j = 0; j < nw; j++){
-            for (k = 0; k < qnd; k++){
-                if(II[i][j][k] < -1e-4){
-                    fprintf(stdout,"forward_solver.c found a negative intensity, stopping\n" \
-                        "Bad parameters:\n a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n" \
-                        "Hd = %1.8e\n", a, r, eps, dep_col, Hd);
-                    // exit(0);
-                    goto wrapup;
-                }
-            }
-        }
-    }
+    // for (i = 0; i < nz; i++){ 
+    //     for (j = 0; j < nw; j++){
+    //         for (k = 0; k < qnd; k++){
+    //             if(II[i][j][k] < -1e-4){
+    //                 fprintf(stdout,"forward_solver.c found a negative intensity, stopping\n" \
+    //                     "Bad parameters:\n a = %1.8e\n r = %1.8e\n eps = %1.8e\n delta = %1.8e\n" \
+    //                     "Hd = %1.8e\n", a, r, eps, dep_col, Hd);
+    //                 // exit(0);
+    //                 goto wrapup;
+    //             }
+    //         }
+    //     }
+    // }
 
     /* -------------------      COMPUTE THE NEW J    -----------------------*/
 
@@ -128,7 +128,7 @@ void solve_profiles(double a,double r, double eps, double dep_col, double Hd,
         Jm20[i] = 1./(4.*sqrt(2)) * trapezoidal(integrand_w, ww, nw);
     }
 
-    wrapup:
+    // wrapup:
 
     // printf("finished in %i iterations, with tolerance:  %1.2e \n",l, mrc);
 

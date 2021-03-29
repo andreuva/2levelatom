@@ -22,7 +22,7 @@ int main(){
     double x_sol[numpar] = {a_sol, r_sol, eps_sol, dep_col_sol, Hd_sol};
     double x_l[numpar] = {1e-12, 1e-12, 1e-4, 0, 0.2};
     double x_u[numpar] = {1, 1, 1, 10 ,1};
-    double step_size[numpar] = {1e-2,1e-7,1e-6,1e-1,1e-1};
+    double step_size[numpar] = {1e-2,1e-7,1e-6,1e-3,1e-3};
     double Jm_step_size = 1e-4;
     double xs[numpar][numpar], beta[numpar];
     double Jm00s[NODES][NODES], betaj00[NODES];
@@ -52,8 +52,8 @@ int main(){
     // initialice the parameters to start the inversion
     x_0[0] = 1e-5; x_0[1] = 1e-5; x_0[2] = 1e-3;  x_0[3] = 1e-1; x_0[4] = 0.6;
     for (i = 0; i < NODES; i++) {
-        Jm00_0[i] = 0;
-        Jm20_0[i] = 1;
+        Jm00_0[i] = 1;
+        Jm20_0[i] = 0;
     }
 
     fprintf(stdout, "\nINITIAL PARAMETERS:\n");
@@ -73,7 +73,7 @@ int main(){
 
         progres_bar(itt, max_iter_inversion);
 
-        if(new_point){
+        if(new_point == 1){
             surroundings_calc(numpar, x_0, xs, HH);
             surroundings_calc(NODES, Jm00_0, Jm00s, HH);
             surroundings_calc(NODES, Jm20_0, Jm20s, HH);
@@ -103,7 +103,7 @@ int main(){
         }
 
         chi2_1 = chi2_calc(x_1, Jm00_1, Jm20_1, I_obs_sol, Q_obs_sol, 
-                                I_1,  Q_1, WJ00, WJ20, STD, WI, WQ, 1);
+                           I_1,  Q_1, WJ00, WJ20, STD, WI, WQ, 0);
 
         fprintf(stdout,"Total Chi^2 %1.6e\n with step parameter of %1.3e\n",chi2_1,cc);
 
