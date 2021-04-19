@@ -89,7 +89,7 @@ def GaussLegendreQuadrature(func, polyorder, a, b):
 ##################################################################
 # The integrand - change as required
 
-if __name__ == 'main':
+if __name__ == '__main__':
     
     def func(x):
         return exp(x)
